@@ -20,16 +20,29 @@ struct alphaCode {
     char alpha;
     long long freq;
     alphaCode() {}
-    alphaCode(pair<char, long long>& x) : alpha(x.first), freq(x.second) {}
+    alphaCode(const pair<char, long long>& x) : alpha(x.first), freq(x.second) {}
 };
 
-// 读取单个文件内容并构建字符频率表
-map<char, long long> readFile(const string& filename);
+class fileIO{
+    public:
+        string inputFileName;
+        string outputFileName;
+        fileIO(string input,string output):inputFileName(input),outputFileName(output){}
+        
+        // 读取单个文件内容并构建字符频率表
+        map<char, long long> readFile();
 
-// 压缩文件
-void compressFile(const string& inputFilename, const string& outputFilename);
+        // 压缩文件
+        void compressFile();
 
-// 解压缩文件
-void decompressFile(const string& inputFilename, const string& outputFilename);
+        //读取压缩文件头信息
+        fileHead readFileHead();
+
+        //读取压缩文件字符频度信息,构建哈夫曼树
+        void readCompressTFileFreq();
+        // 解压缩文件
+        void decompressFile();
+
+}
 
 #endif

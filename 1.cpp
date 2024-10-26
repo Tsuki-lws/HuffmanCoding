@@ -1,25 +1,27 @@
+#include <fstream>
 #include <iostream>
-#include<queue>
-#include <vector>
-using namespace std;
-class Node {
-public:
-    int freq;
 
-    bool operator()(Node* const &n1, Node* const &n2){
-        return  n1->freq > n2->freq; // 频率越高，优先级越低
-    }
+struct FileHead {
+    int id;
+    char name[20];
 };
 
 int main() {
-    Node node1, node2;
-    priority_queue<Node*,vector<Node*>,Node> q;
-    node1.freq = 10;
-    node2.freq = 20;
-    q.push(&node1);
-    q.push(&node2);
+    // 写入数据
+    std::ofstream outputFile("output.bin", std::ios::binary);
+    FileHead filehead = {1, "example"};
+    outputFile.write((char*)(&filehead), sizeof(filehead));
+    outputFile.close();
 
-    std::cout << q.top()->freq << std::endl;
+    // 读取数据
+    std::ifstream inputFile("output.bin", std::ios::binary);
+    FileHead readFilehead;
+    inputFile.read((char*)(&readFilehead), sizeof(readFilehead));
+    inputFile.close();
+
+    // 输出读取的数据
+    std::cout << "ID: " << readFilehead.id << std::endl;
+    std::cout << "Name: " << readFilehead.name << std::endl;
 
     return 0;
 }

@@ -1,10 +1,10 @@
 #include "fileIO.h"
 #include "HuffmanTree.h"
-#include<bitset>
+#include <bitset>
 
 // 读取单个文件内容并构建字符频率表
-map<char, long long> readFile(const string& filename) {
-    ifstream file(filename, ios::in | ios::binary);
+map<char, long long> fileIO::readFile() {
+    ifstream file(inputFileName, ios::in | ios::binary);
     map<char, long long> freqTable;
     vector<char> buffer(1024);
     while (file.read(buffer.data(), buffer.size()) || file.gcount() > 0) {
@@ -17,67 +17,90 @@ map<char, long long> readFile(const string& filename) {
 }
 
 // 压缩文件
-void compressFile(const string& inputFilename, const string& outputFilename) {
-    // 读取文件并构建字符频率表，在后面可以改到前一层，把这5行作为参数传进来
+void fileIO::compressFile() {
+    // 读取文件并构建字符频率表，在后面可以改到前一层，把这4行作为参数传进来
     //这样应该可以解决解压缩文件代码中的错误（好像不太行，这是独立的）
     map<char, long long> freqTable = readFile(inputFilename);
     HuffmanTree tree(freqTable);
     tree.createHuffmanTree();
-    map<char, string> charCode;
-    charCode = tree.createHuffmanCode();
+    map<char, string> charCode = tree.createHuffmanCode();
 
     // 写入压缩文件
     ifstream inputFile(inputFilename, ios::in | ios::binary);
     ofstream outputFile(outputFilename, ios::out | ios::binary);
+
+    // 写入文件头信息
+    fileHead filehead;
+    filehead.originBytes = inputFile.seekg(0, ios::end).tellg();
+    inputFile.seekg(0, ios::beg);
+    filehead.alphaVarity = charCode.size();
+    outputFile.write(reinterpret_cast<char*>(&filehead), sizeof(filehead));
+
+    // 写入字符频度信息
+    for (auto& entry : freqTable) {
+        alphaCode af(entry);
+        outputFile.write(reinterpret_cast<char*>(&af), sizeof(af));
+    }
+
     vector<char> inputBuffer(1024);
     vector<char> outputBuffer;
     string buffer;
     while (inputFile.read(inputBuffer.data(), inputBuffer.size()) || inputFile.gcount() > 0) {
         for (size_t i = 0; i < inputFile.gcount(); i++) {
-            // 获得对应的哈夫曼编码
             buffer += charCode[inputBuffer[i]];
         }
-        // 每次读取一部分后进行写入
         while (buffer.size() >= 8) {
             bitset<8> bits(buffer.substr(0, 8));
-            outputBuffer.push_back(static_cast<unsigned char>(bits.to_ulong()));
+            outputBuffer.push_back((char)(bits.to_ulong()));
             buffer.erase(0, 8);
         }
-        // 将缓存数组中的数据写入文件
         outputFile.write(outputBuffer.data(), outputBuffer.size());
-        // 重置写入缓存数组
-        outputBuffer.clear(); 
+        outputBuffer.clear();
     }
-    // 将最后不足8位bit的进行处理
     if (!buffer.empty()) {
         bitset<8> bits(buffer);
-        outputBuffer.push_back(static_cast<unsigned char>(bits.to_ulong()));
+        outputBuffer.push_back((char)(bits.to_ulong()));
     }
-    // 将缓存数组中的数据写入文件
     outputFile.write(outputBuffer.data(), outputBuffer.size());
-    // 重置写入缓存数组
-    outputBuffer.clear(); 
-    // 关闭文件读取和写入
+    outputBuffer.clear();
     inputFile.close();
     outputFile.close();
 }
 
+//读取压缩文件头信息
+fileHead readFileHead(const string& inputFileName){
+    fileHead filehead;
+    ifstream inputFile(inputFileName, ios::in | ios::binary);
+    inputFile.read(reinterpret_cast<char*>(&filehead), sizeof(filehead));
+    inputFile.close();
+    return filehead;
+}
+
+//读取压缩文件字符频度信息,构建哈夫曼树
+void readCompressTFileFreq(int alphaVarity) {
+    map<char, long long> freqTable;
+    for (int i = 0; i < alphaVarity; i++) {
+        alphaCode af;
+        inputFile.read(reinterpret_cast<char*>(&af), sizeof(af));
+        freqTable[af.alpha] = af.freq;
+    }
+}
 // 解压缩文件
 void decompressFile(const string& inputFilename, const string& outputFilename) {
-    // 读取压缩文件并重建哈夫曼树
     ifstream inputFile(inputFilename, ios::in | ios::binary);
     ofstream outputFile(outputFilename, ios::out);
-    HuffmanNode* root = q.top(); // 假设哈夫曼树根节点已存在
+
+    
+    HuffmanTree tree(freqTable);
+    tree.createHuffmanTree();
+    HuffmanNode* root = tree.getRoot();
     HuffmanNode* current = root;
+
     char byte;
     while (inputFile.get(byte)) {
-        bitset<8> bits(static_cast<unsigned char>(byte));
+        bitset<8> bits((char)(byte));
         for (int i = 0; i < 8; ++i) {
-            if (bits[i]) {
-                current = current->right;
-            } else {
-                current = current->left;
-            }
+            current = bits[i] ? current->right : current->left;
             if (!current->left && !current->right) {
                 outputFile.put(current->data);
                 current = root;
