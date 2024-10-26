@@ -39,7 +39,8 @@ class fileIO{
         fileHead readFileHead();
 
         //读取压缩文件字符频度信息,构建哈夫曼树
-        void readCompressTFileFreq();
+        map<char, long long> readCompressTFileFreq(int alphaVarity);
+
         // 解压缩文件
         void decompressFile();
 

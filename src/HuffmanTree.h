@@ -47,6 +47,8 @@ class HuffmanTree {
         bool isLeaf(HuffmanNode* node) {
             return node->left == nullptr && node->right == nullptr;
         }
+        //返回哈夫曼树根节点
+        HuffmanNode* getHuffmanRoot();
     private:
         //递归获取哈夫曼编码,存放到map中
         void subCreateHuffmanCode(HuffmanNode* root, string huffmancode, map<char, string>& haffmanCode);

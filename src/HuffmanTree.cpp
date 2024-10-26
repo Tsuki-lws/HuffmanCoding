@@ -44,4 +44,9 @@ void HuffmanTree::subCreateHuffmanCode(HuffmanNode* root,
         huffmancode += '1';
         subCreateHuffmanCode(root->right,huffmancode,charCode);
     }
+
+}
+
+HuffmanNode* HuffmanTree::getHuffmanRoot() {
+    return q.top();
 }
