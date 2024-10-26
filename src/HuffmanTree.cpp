@@ -27,30 +27,21 @@ map<char, string> HuffmanTree::createHuffmanCode() {
 
 void HuffmanTree::subCreateHuffmanCode(HuffmanNode* root, 
                 string huffmancode, map<char,string>& charCode) {
-    
+
+    if(isLeaf(root)) {
+        charCode[root->data] = huffmancode;
+    }
     //在分叉点复制一份相同的编码用于右子树
     string right = huffmancode;
     //是左子树加0
-    if (root->left != nullptr){
+    if(root->left != nullptr) {
         huffmancode += '0';
-        //如果此时其左孩子到达叶子节点,就将其记录写入map
-        if(isLeaf(root->left)){
-            charCode[root->left->data] = huffmancode;
-        }
-        else{
-            subCreateHuffmanCode(root->left,huffmancode,charCode);
-        }
+        subCreateHuffmanCode(root->left,huffmancode,charCode);
     }
-    //右子树加1
+    //是右子树加1
     if(root->right!=nullptr){
         huffmancode = right;
         huffmancode += '1';
-        //如果此时其右孩子是叶子,就将其记录写入map
-        if(isLeaf(root->right)){
-            charCode[root->right->data] = huffmancode;
-        }
-        else{
-            subCreateHuffmanCode(root->right,huffmancode,charCode);
-        }
+        subCreateHuffmanCode(root->right,huffmancode,charCode);
     }
 }
