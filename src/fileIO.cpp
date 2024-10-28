@@ -128,11 +128,12 @@ void fileIO::decompressFile(const string& filename, const string& outputFileName
     inputFile.close();
     outputFile.close();
 }
-
+// 判断是否是文件夹
 bool fileIO::isDirectory(const string& filename) {
     return fs::is_directory(filename);
 }
 
+// 压缩文件,输出到outputFileName
 void fileIO::compress(const string& filename, const string& outputFileName) {
     if(isDirectory(filename)){
         compressDirectory(filename,outputFileName);
@@ -140,7 +141,7 @@ void fileIO::compress(const string& filename, const string& outputFileName) {
         compressFile(filename,outputFileName);
     }
 }
-
+// 压缩文件夹,输出到outputFileName
 void fileIO::compressDirectory(const string& dirPath, const string& outputFileName) {
     for (const auto& entry : fs::directory_iterator(dirPath)) {
         if (fs::is_regular_file(entry.path())) {
