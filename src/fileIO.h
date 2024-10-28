@@ -25,25 +25,30 @@ struct alphaCode {
 
 class fileIO{
     public:
-        string inputFileName;
-        string outputFileName;
-        fileIO(string input,string output):inputFileName(input),outputFileName(output){}
-        
         // 读取单个文件内容并构建字符频率表
-        map<char, long long> readFile();
-
-        // 压缩文件
-        void compressFile();
+        map<char, long long> makeCharFreq(const string& filename);
 
         //读取压缩文件头信息
-        fileHead readFileHead();
+        fileHead readFileHead(const string& filename);
 
         //读取压缩文件字符频度信息,构建哈夫曼树
-        map<char, long long> readCompressTFileFreq(int alphaVarity);
+        map<char, long long> readCompressTFileFreq(const string& filename, int alphaVarity);
 
-        // 解压缩文件
-        void decompressFile();
+        // 解压缩文件,输出到outputFileName
+        void decompressFile(const string& filename, const string& outputFileName);
 
+        // 判断是否是文件夹
+        bool isDirectory(const string& filename);
+
+        // 压缩文件,输出到outputFileName
+        void compress(const string& filename, const string& outputFileName);
+
+    private:
+        // 压缩单个文件,输出到outputFileName
+        void compressFile(const string& filename, const string& outputFileName);
+
+        // 压缩文件夹,输出到outputFileName
+        void compressDirectory(const string& filename, const string& outputFileName);
 }
 
 #endif

@@ -1,10 +1,13 @@
 #include "fileIO.h"
 #include "HuffmanTree.h"
 #include <bitset>
+#include<filesystem>
+
+namespace fs = std::filesystem;
 
 // 读取单个文件内容并构建字符频率表
-map<char, long long> fileIO::readFile() {
-    ifstream file(inputFileName, ios::in | ios::binary);
+map<char, long long> fileIO::makeCharFreq(const string& filename) {
+    ifstream file(filename, ios::in | ios::binary);
     map<char, long long> freqTable;
     vector<char> buffer(1024);
     while (file.read(buffer.data(), buffer.size()) || file.gcount() > 0) {
@@ -16,17 +19,17 @@ map<char, long long> fileIO::readFile() {
     return freqTable;
 }
 
-// 压缩文件
-void fileIO::compressFile() {
+// 压缩单个文件
+void fileIO::compressFile(const string& filename, const string& outputFileName) {
     // 读取文件并构建字符频率表，在后面可以改到前一层，把这4行作为参数传进来
     //这样应该可以解决解压缩文件代码中的错误（好像不太行，这是独立的）
-    map<char, long long> freqTable = readFile();
+    map<char, long long> freqTable = makeCharFreq(filename);
     HuffmanTree tree(freqTable);
     tree.createHuffmanTree();
     map<char, string> charCode = tree.createHuffmanCode();
 
     // 写入压缩文件
-    ifstream inputFile(inputFileName, ios::in | ios::binary);
+    ifstream inputFile(filename, ios::in | ios::binary);
     ofstream outputFile(outputFileName, ios::out | ios::binary);
 
     // 写入文件头信息
@@ -68,17 +71,17 @@ void fileIO::compressFile() {
 }
 
 //读取压缩文件头信息
-fileHead fileIO::readFileHead(){
+fileHead fileIO::readFileHead(const string& filename){
     fileHead filehead;
-    ifstream inputFile(inputFileName, ios::in | ios::binary);
+    ifstream inputFile(filename, ios::in | ios::binary);
     inputFile.read(reinterpret_cast<char*>(&filehead), sizeof(filehead));
     inputFile.close();
     return filehead;
 }
 
 //读取压缩文件字符频度信息,构建哈夫曼树
-map<char, long long> fileIO::readCompressTFileFreq(int alphaVarity) {
-    ifstream inputFile(inputFileName, ios::in | ios::binary);
+map<char, long long> fileIO::readCompressTFileFreq(const string& filename,int alphaVarity) {
+    ifstream inputFile(filename, ios::in | ios::binary);
     map<char, long long> freqTable;
     for (int i = 0; i < alphaVarity; i++) {
         alphaCode af;
@@ -88,13 +91,13 @@ map<char, long long> fileIO::readCompressTFileFreq(int alphaVarity) {
     return freqTable;
 }
 // 解压缩文件
-void fileIO::decompressFile() {
-    ifstream inputFile(inputFileName, ios::in | ios::binary);
+void fileIO::decompressFile(const string& filename, const string& outputFileName) {
+    ifstream inputFile(filename, ios::in | ios::binary);
     ofstream outputFile(outputFileName, ios::out);
     //读取头文件信息
-    fileHead filehead = readFileHead();
+    fileHead filehead = readFileHead(filename);
     //读取字符频度信息
-    map<char, long long> freqTable = readCompressTFileFreq(filehead.alphaVarity);
+    map<char, long long> freqTable = readCompressTFileFreq(filename,filehead.alphaVarity);
     //构建哈夫曼树
     HuffmanTree tree(freqTable);
     tree.createHuffmanTree();
@@ -124,4 +127,24 @@ void fileIO::decompressFile() {
     //关闭文件
     inputFile.close();
     outputFile.close();
+}
+
+bool fileIO::isDirectory(const string& filename) {
+    return fs::is_directory(filename);
+}
+
+void fileIO::compress(const string& filename, const string& outputFileName) {
+    if(isDirectory(filename)){
+        compressDirectory(filename,outputFileName);
+    }else{
+        compressFile(filename,outputFileName);
+    }
+}
+
+void fileIO::compressDirectory(const string& dirPath, const string& outputFileName) {
+    for (const auto& entry : fs::directory_iterator(dirPath)) {
+        if (fs::is_regular_file(entry.path())) {
+            compressFile(entry.path().string(),outputFileName);
+        }
+    }
 }
