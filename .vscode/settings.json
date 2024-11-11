@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.h": "cpp",
         "string": "cpp",
         "format": "cpp",
         "array": "cpp",
@@ -51,6 +52,7 @@
         "typeinfo": "cpp",
         "variant": "cpp",
         "unordered_set": "cpp",
-        "bitset": "cpp"
+        "bitset": "cpp",
+        "filesystem": "cpp"
     }
 }
