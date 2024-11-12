@@ -14,6 +14,7 @@ using namespace std;
 struct fileHead {
     int alphaVarity; // 字符种类数量
     long long originBytes; // 源文件字节数
+    string name; // 文件名
 };
 
 // 字母及其权值
@@ -42,11 +43,8 @@ class FileIO{
         //读取压缩文件字符频度信息,构建哈夫曼树
         pair<map<char, long long>,streampos> readCompressTFileFreq(const string& filename,
                                                         int alphaVarity,streampos currentPos);
-        // 读取文件名信息
-        pair<string,streampos> readFileName(const string& filename,streampos currentPos,
-                                                            map<char, long long> freqTable);
         // 解压缩单个文件
-        void decompressFile(const string& filename, const string& outputFileName);
+        void decompressFile(const string& filename, string& outputFileName);
 
         // // 判断是否是文件夹
         // bool isDirectory(const string& filename);
