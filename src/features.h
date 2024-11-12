@@ -16,7 +16,7 @@ class Features {
         void compress(const string& filename, const string& outputFileName);
 
         // 解压缩文件
-        void decompress(const string& filename, const string& outputFileName);
+        void decompress(const string& filename, string& outputFileName);
 
         // 判断是否是文件夹
         bool isDirectory(const string& filename);

@@ -94,6 +94,7 @@ string Features::getFileName(const string& filePath) {
     }
 }
 
-void Features::decompress(const string& filename, const string& outputFileName) {
-
+void Features::decompress(const string& filename, string& outputFileName) {
+    FileIO fileIO;
+    fileIO.decompressFile(filename,outputFileName);
 }

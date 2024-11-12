@@ -14,7 +14,8 @@ using namespace std;
 struct fileHead {
     int alphaVarity; // 字符种类数量
     long long originBytes; // 源文件字节数
-    string name; // 文件名
+    int nameLength; // 文件名长度
+    char name[256]; // 文件名字符数组（可根据实际文件名长度调整大小）
 };
 
 // 字母及其权值

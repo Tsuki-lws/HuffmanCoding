@@ -2,6 +2,7 @@
 #include "HuffmanTree.h"
 #include <bitset>
 #include <filesystem>
+#include <cstring>
 
 namespace fs = std::filesystem;
 
@@ -39,8 +40,12 @@ void FileIO::compressFile(const string &filename, const string &outputFileName)
         fileHead filehead;
         filehead.originBytes = 0;
         filehead.alphaVarity = 0;
-        filehead.name = filename;
+        filehead.nameLength = filename.length();
+        strncpy(filehead.name, filename.c_str(), sizeof(filehead.name) - 1); // 将文件名存入字符数组
+
         outputFile.write(reinterpret_cast<char *>(&filehead), sizeof(filehead));
+
+        outputFile.write("\n",1);
 
         inputFile.close();
         outputFile.close();
@@ -64,8 +69,11 @@ void FileIO::compressFile(const string &filename, const string &outputFileName)
         filehead.originBytes = inputFile.seekg(0, ios::end).tellg();
         inputFile.seekg(0, ios::beg);
         filehead.alphaVarity = charCode.size();
-        filehead.name = filename;
+        filehead.nameLength = filename.length();
+        strncpy(filehead.name, filename.c_str(), sizeof(filehead.name) - 1); // 将文件名存入字符数组
         outputFile.write(reinterpret_cast<char *>(&filehead), sizeof(filehead));
+        // 换行符隔开
+        outputFile.write("\n",1);
 
         // 写入字符频度信息
         for (auto &entry : freqTable)
@@ -74,6 +82,9 @@ void FileIO::compressFile(const string &filename, const string &outputFileName)
             outputFile.write(reinterpret_cast<char *>(&af), sizeof(af));
         }
 
+        // 换行符隔开
+        outputFile.write("\n",1);
+        // 写入主内容
         vector<char> inputBuffer(1024);
         vector<char> outputBuffer;
         string buffer;
@@ -109,7 +120,7 @@ pair<fileHead,streampos> FileIO::readFileHead(const string &filename)
 {
     fileHead filehead;
     ifstream inputFile(filename, ios::in | ios::binary);
-    inputFile.read(reinterpret_cast<char *>(&filehead), sizeof(filehead));
+    inputFile.read(reinterpret_cast<char*>(&filehead), sizeof(filehead));
     inputFile.get(); // 读取换行符
     
     // 记录当前文件指针位置
@@ -131,9 +142,10 @@ pair<map<char, long long>,streampos> FileIO::readCompressTFileFreq(const string 
     {
         alphaCode af;
         inputFile.read(reinterpret_cast<char *>(&af), sizeof(af));
-        inputFile.get(); // 读取换行符
         freqTable[af.alpha] = af.freq;
     }
+    
+    inputFile.get(); // 读取换行符
     // 记录当前文件指针位置
     streampos newPos = inputFile.tellg();
     inputFile.close();
@@ -146,8 +158,9 @@ void FileIO::decompressFile(const string &filename, string &outputFileName)
     // 读取头文件信息
     auto [filehead,currentPos] = readFileHead(filename);
 
-    // 将输出路径更新
-    outputFileName = filehead.name;
+    // 恢复文件名,将输出路径更新
+    string outputFilename(filehead.name, filehead.nameLength);
+    outputFileName = outputFilename;
     if(filehead.originBytes == 0){
         ofstream outputFile(outputFileName, ios::out);
         outputFile.close();
