@@ -14,16 +14,6 @@ void Features::compress(const string& filename, const string& outputFileName) {
 }
 
 void Features::compressFile(const string& filename, const string& outputFileName) {
-    // 检查文件路径是否存在
-    try {
-        if (!std::filesystem::exists(filename)) {
-            std::cerr << "File does not exist: " << filename << std::endl;
-            return;
-        }
-    } catch (const std::filesystem::filesystem_error& e) {
-        std::cerr << "Filesystem error: " << e.what() << std::endl;
-        return;
-    }
 
     // 暂时没有考虑outputFileName是否已经存在，感觉应该在更上层考虑
     FileIO fileIO;
@@ -31,21 +21,7 @@ void Features::compressFile(const string& filename, const string& outputFileName
     fileIO.compressFile(filename, outputFileName);
 }
 
-void Features::compressDirectory(const string& dirPath, const string& outputFileName) {
-    // 检查目录路径是否存在
-    try {
-        if (!std::filesystem::exists(dirPath)) {
-            std::cerr << "Directory does not exist: " << dirPath << std::endl;
-            return;
-        }
-    } catch (const std::filesystem::filesystem_error& e) {
-        std::cerr << "Filesystem error: " << e.what() << std::endl;
-        return;
-    }
-    
-    
-    
-    
+void Features::compressDirectory(const string& dirPath, const string& outputFileName) {    
     // 获取目录下的文件夹信息以及文件信息
     vector<string> dirname;
     vector<string> filename;

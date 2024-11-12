@@ -37,11 +37,14 @@ class FileIO{
         //解压缩部分-------------------------------------------------------------
 
         //读取压缩文件头信息
-        fileHead readFileHead(const string& filename);
+        pair<fileHead,streampos> readFileHead(const string& filename);
 
         //读取压缩文件字符频度信息,构建哈夫曼树
-        map<char, long long> readCompressTFileFreq(const string& filename, int alphaVarity);
-
+        pair<map<char, long long>,streampos> readCompressTFileFreq(const string& filename,
+                                                        int alphaVarity,streampos currentPos);
+        // 读取文件名信息
+        pair<string,streampos> readFileName(const string& filename,streampos currentPos,
+                                                            map<char, long long> freqTable);
         // 解压缩单个文件
         void decompressFile(const string& filename, const string& outputFileName);
 

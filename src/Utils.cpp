@@ -44,13 +44,6 @@ void Execution(int choice) {
             tool.compress(names[0],names[1]);
             break;
         }
-        // case COMPRESSDIRECTORY:{
-        //     string filename,outputName;
-        //     auto names = printInteraction(COMPRESSDIRECTORY);
-        //     filename = names[0];
-        //     outputName = names[1];
-        //     break;
-        // }
         case DECOMPRESSFILE:
         case DECOMPRESSDIRECTORY:
         {
@@ -58,13 +51,6 @@ void Execution(int choice) {
             tool.decompress(names[0],names[1]);
             break;
         }
-        // case DECOMPRESSDIRECTORY:{
-        //     string filename,outputName;
-        //     auto names = printInteraction(DECOMPRESSDIRECTORY);
-        //     filename = names[0];
-        //     outputName = names[1];
-        //     break;
-        // }
     }
 }
 
@@ -76,8 +62,6 @@ string* printInteraction(int choice) {
             getline(cin,name[0]);
             cout << "请输入你要输出的文件文件名(不用加后缀)" << endl;
             getline(cin,name[1]);
-            // Features tool;
-            // tool.compress(name[0],name[1]);
             break;
         }
         case COMPRESSDIRECTORY:{
@@ -90,15 +74,15 @@ string* printInteraction(int choice) {
         case DECOMPRESSFILE:{
             cout << "请输入你要解压缩的文件路径(包含后缀)" << endl;
             getline(cin,name[0]);
-            cout << "请输入你要输出的文件文件名" << endl;
-            getline(cin,name[1]);
+            // cout << "请输入你要输出的文件文件名" << endl;
+            // getline(cin,name[1]);
             break;
         }
         case DECOMPRESSDIRECTORY:{
             cout << "请输入你要解压缩的文件路径" << endl;
             getline(cin,name[0]);
-            cout << "请输入你要输出的文件夹名" << endl;
-            getline(cin,name[1]);
+            // cout << "请输入你要输出的文件夹名" << endl;
+            // getline(cin,name[1]);
             break;
         }
     }
