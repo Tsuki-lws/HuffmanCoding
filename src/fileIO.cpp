@@ -31,7 +31,7 @@ void FileIO::compressFile(const string &filename, const string &outputFileName)
     // 对于空文件，直接写入0
     if (std::filesystem::file_size(entry) == 0)
     {
-        // 写入压缩文件
+        // 读取原文件
         ifstream inputFile(filename, ios::in | ios::binary);
         // 以追加模式写入，不知道会不会有影响
         ofstream outputFile(outputFileName, ios::out | ios::binary | ios::app);
@@ -84,6 +84,7 @@ void FileIO::compressFile(const string &filename, const string &outputFileName)
 
         // 换行符隔开
         outputFile.write("\n",1);
+
         // 写入主内容
         vector<char> inputBuffer(1024);
         vector<char> outputBuffer;
@@ -105,6 +106,11 @@ void FileIO::compressFile(const string &filename, const string &outputFileName)
         }
         if (!buffer.empty())
         {
+            // 补齐八位
+            int yu = buffer.size();
+            for(int i = yu; i < 8;i++){
+                buffer += '0';
+            } 
             bitset<8> bits(buffer);
             outputBuffer.push_back((char)(bits.to_ulong()));
         }
@@ -162,7 +168,7 @@ void FileIO::decompressFile(const string &filename, string &outputFileName)
     string outputFilename(filehead.name, filehead.nameLength);
     outputFileName = outputFilename;
     if(filehead.originBytes == 0){
-        ofstream outputFile(outputFileName, ios::out);
+        ofstream outputFile(outputFileName, ios::out | ios::binary |ios::app);
         outputFile.close();
         return;
     }
@@ -178,7 +184,7 @@ void FileIO::decompressFile(const string &filename, string &outputFileName)
 
     ifstream inputFile(filename, ios::in | ios::binary);
     // 这个可能也要处理
-    ofstream outputFile(outputFileName, ios::out);
+    ofstream outputFile(outputFileName, ios::out | ios::binary |ios::app);
     // 定位到存储文件的位置
     inputFile.seekg(newPos);
     // 缓冲区
@@ -189,7 +195,8 @@ void FileIO::decompressFile(const string &filename, string &outputFileName)
         for (size_t i = 0; i < inputFile.gcount(); i++)
         {
             bitset<8> bits((char)(inputBuffer[i]));
-            for (int j = 0; j < 8; ++j)
+            // bit[0]是字符串的末尾一位
+            for (int j = 7; j >= 0; --j)
             {
                 current = bits[j] ? current->right : current->left;
                 if (!current->left && !current->right)
@@ -202,9 +209,18 @@ void FileIO::decompressFile(const string &filename, string &outputFileName)
         outputFile.write(outputBuffer.data(), outputBuffer.size());
         outputBuffer.clear();
     }
+    // 获取文件大小
+    outputFile.close(); // 关闭文件以确保所有数据都写入
+    ifstream checkFile(outputFileName, ios::in | ios::binary);
+    long long fileSize = checkFile.seekg(0, ios::end).tellg();
+    checkFile.close();
+    if(fileSize == filehead.originBytes + 1){
+        // 使用resize_file缩减文件大小
+        fs::resize_file(outputFileName, fileSize - 1);
+    }
     // 关闭文件
     inputFile.close();
-    outputFile.close();
+    
 }
 // // 判断是否是文件夹
 // bool fileIO::isDirectory(const string& filename) {
