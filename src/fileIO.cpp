@@ -88,30 +88,41 @@ void FileIO::compressFile(const string &filename, const string &outputFileName)
         // 写入主内容
         vector<char> inputBuffer(1024);
         vector<char> outputBuffer;
-        string buffer;
+        // string buffer;
+        bitset<8> bits;
+        int bitcount = 0;
         while (inputFile.read(inputBuffer.data(), inputBuffer.size()) || inputFile.gcount() > 0)
         {
-            for (size_t i = 0; i < inputFile.gcount(); i++)
-            {
-                buffer += charCode[inputBuffer[i]];
-            }
-            while (buffer.size() >= 8)
-            {
-                bitset<8> bits(buffer.substr(0, 8));
-                outputBuffer.push_back((char)(bits.to_ulong()));
-                buffer.erase(0, 8);
+            // for (size_t i = 0; i < inputFile.gcount(); i++)
+            // {
+            //     buffer += charCode[inputBuffer[i]];
+            // }
+            // while (buffer.size() >= 8)
+            // {
+            //     bitset<8> bits(buffer.substr(0, 8));
+            //     outputBuffer.push_back((char)(bits.to_ulong()));
+            //     buffer.erase(0, 8);
+            // }
+            
+            for(size_t i = 0; i < inputFile.gcount(); i++){
+                for(size_t j = 0; j < charCode[inputBuffer[i]].length(); j++){
+                    bits[bitcount++] = charCode[inputBuffer[i]][j] == '1' ? 1 : 0; 
+                    if(bitcount == 8){
+                        outputBuffer.push_back((char)bits.to_ulong());
+                        bits.reset();  // 清空累计的位
+                        bitcount = 0;
+                    }
+                }
             }
             outputFile.write(outputBuffer.data(), outputBuffer.size());
             outputBuffer.clear();
         }
-        if (!buffer.empty())
+        if (!!bitcount)
         {
             // 补齐八位
-            int yu = buffer.size();
-            for(int i = yu; i < 8;i++){
-                buffer += '0';
-            } 
-            bitset<8> bits(buffer);
+            for(int i = bitcount; i < 8;i++){
+                bits[i] = 0;
+            }
             outputBuffer.push_back((char)(bits.to_ulong()));
         }
         outputFile.write(outputBuffer.data(), outputBuffer.size());
@@ -196,7 +207,7 @@ void FileIO::decompressFile(const string &filename, string &outputFileName)
         {
             bitset<8> bits((char)(inputBuffer[i]));
             // bit[0]是字符串的末尾一位
-            for (int j = 7; j >= 0; --j)
+            for (int j = 0; j < 8; j++)
             {
                 current = bits[j] ? current->right : current->left;
                 if (!current->left && !current->right)
