@@ -6,23 +6,6 @@
 
 namespace fs = std::filesystem;
 
-// 读取单个文件内容并构建字符频率表（没问题）
-// map<char, long long> FileIO::makeCharFreq(const string &filename)
-// {
-//     ifstream file(filename, ios::in | ios::binary);
-//     map<char, long long> freqTable;
-    
-//     vector<char> buffer(BUFFER_SIZE);
-//     while (file.read(buffer.data(), buffer.size()) || file.gcount() > 0)
-//     {
-//         for (size_t i = 0; i < file.gcount(); i++)
-//         {
-//             freqTable[buffer[i]]++;
-//         }
-//     }
-//     file.close();
-//     return freqTable;
-// }
 map<char, long long> FileIO::makeCharFreq(const string &filename)
 {
     ifstream file(filename, ios::in | ios::binary);
@@ -44,9 +27,7 @@ map<char, long long> FileIO::makeCharFreq(const string &filename)
             freqArray[ch]++;
         }
     }
-    
     file.close();
-    
     // 将数组中的频率转换为 map 返回
     map<char, long long> freqTable;
     for (int i = 0; i < 256; ++i) {
@@ -107,8 +88,8 @@ void FileIO::compressFile(const string &filename, const string &outputFileName)
         filehead.nameLength = filename.length();
         strncpy(filehead.name, filename.c_str(), sizeof(filehead.name) - 1); // 将文件名存入字符数组
         outputFile.write(reinterpret_cast<char *>(&filehead), sizeof(filehead));
-        // 换行符隔开
-        outputFile.write("\n",1);
+        // // 换行符隔开
+        // outputFile.write("\n",1);
 
         // 写入字符频度信息
         for (auto &entry : freqTable)
@@ -117,8 +98,8 @@ void FileIO::compressFile(const string &filename, const string &outputFileName)
             outputFile.write(reinterpret_cast<char *>(&af), sizeof(af));
         }
 
-        // 换行符隔开
-        outputFile.write("\n",1);
+        // // 换行符隔开
+        // outputFile.write("\n",1);
 
         // 写入主内容
         vector<char> inputBuffer(BUFFER_SIZE);
@@ -135,7 +116,7 @@ void FileIO::compressFile(const string &filename, const string &outputFileName)
                     bits[bitcount++] = currentChar[j] == '1' ? 1 : 0; 
                     if(bitcount == 8){
                         outputBuffer[outputIndex++] = (char)(bits.to_ulong());
-                        bits.reset();  // 清空累计的位
+                        // bits.reset();  // 清空累计的位
                         bitcount = 0;
                     }
                     if(outputIndex == BUFFER_SIZE){
@@ -165,7 +146,7 @@ pair<fileHead,streampos> FileIO::readFileHead(const string &filename)
     fileHead filehead;
     ifstream inputFile(filename, ios::in | ios::binary);
     inputFile.read(reinterpret_cast<char*>(&filehead), sizeof(filehead));
-    inputFile.get(); // 读取换行符
+    // inputFile.get(); // 读取换行符
     
     // 记录当前文件指针位置
     streampos currentPos = inputFile.tellg();
@@ -189,7 +170,7 @@ pair<map<char, long long>,streampos> FileIO::readCompressTFileFreq(const string 
         freqTable[af.alpha] = af.freq;
     }
     
-    inputFile.get(); // 读取换行符
+    // inputFile.get(); // 读取换行符
     // 记录当前文件指针位置
     streampos newPos = inputFile.tellg();
     inputFile.close();
@@ -226,36 +207,50 @@ void FileIO::decompressFile(const string &filename, string &outputFileName)
     // 定位到存储文件的位置
     inputFile.seekg(newPos);
     // 缓冲区
-    vector<char> inputBuffer(1024);
-    vector<char> outputBuffer;
+    vector<char> inputBuffer(BUFFER_SIZE);
+    vector<char> outputBuffer(BUFFER_SIZE);
+    int outputIndex = 0;
+    int writeByte = 0;
     while (inputFile.read(inputBuffer.data(), inputBuffer.size()) || inputFile.gcount() > 0)
     {
-        for (size_t i = 0; i < inputFile.gcount(); i++)
+        int count = inputFile.gcount();
+        for (size_t i = 0; i < count; i++)
         {
             bitset<8> bits((char)(inputBuffer[i]));
-            // bit[0]是字符串的末尾一位
+            // bit[0]是字符串的末尾一位,现在不确定对不对，我改了
             for (int j = 0; j < 8; j++)
             {
                 current = bits[j] ? current->right : current->left;
                 if (!current->left && !current->right)
                 {
-                    outputBuffer.push_back(current->data);
+                    outputBuffer[outputIndex++] = current->data;
+                    writeByte++;
                     current = root;
+                    if(outputIndex == BUFFER_SIZE ){
+                        outputFile.write(outputBuffer.data(), outputIndex);
+                        outputIndex = 0;
+                    }
+                    // 处理多余的字符
+                    if(writeByte >= filehead.originBytes){
+                        goto finish;
+                    }
                 }
             }
         }
-        outputFile.write(outputBuffer.data(), outputBuffer.size());
-        outputBuffer.clear();
     }
-    // 获取文件大小
-    outputFile.close(); // 关闭文件以确保所有数据都写入
-    ifstream checkFile(outputFileName, ios::in | ios::binary);
-    long long fileSize = checkFile.seekg(0, ios::end).tellg();
-    checkFile.close();
-    if(fileSize == filehead.originBytes + 1){
-        // 使用resize_file缩减文件大小
-        fs::resize_file(outputFileName, fileSize - 1);
+finish: ;
+    if(outputIndex > 0){
+        outputFile.write(outputBuffer.data(), outputIndex);
     }
+    // // 获取文件大小
+    // outputFile.close(); // 关闭文件以确保所有数据都写入
+    // ifstream checkFile(outputFileName, ios::in | ios::binary);
+    // long long fileSize = checkFile.seekg(0, ios::end).tellg();
+    // checkFile.close();
+    // if(fileSize == filehead.originBytes + 1){
+    //     // 使用resize_file缩减文件大小
+    //     fs::resize_file(outputFileName, fileSize - 1);
+    // }
     // 关闭文件
     inputFile.close();
     
