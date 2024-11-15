@@ -3,6 +3,7 @@
 
 #include<queue>
 #include<map>
+#include<unordered_map>
 #include<string>
 using namespace std;
 
@@ -42,7 +43,7 @@ class HuffmanTree {
         //创建哈夫曼树
         void createHuffmanTree();
         //获取哈夫曼编码
-        map<char, string> createHuffmanCode();
+        unordered_map<char, string> createHuffmanCode();
         //判断是否为叶子节点
         bool isLeaf(HuffmanNode* node) {
             return node->left == nullptr && node->right == nullptr;
@@ -51,6 +52,6 @@ class HuffmanTree {
         HuffmanNode* getHuffmanRoot();
     private:
         //递归获取哈夫曼编码,存放到map中
-        void subCreateHuffmanCode(HuffmanNode* root, string huffmancode, map<char, string>& haffmanCode);
+        void subCreateHuffmanCode(HuffmanNode* root, string huffmancode, unordered_map<char, string>& haffmanCode);
 };
 #endif

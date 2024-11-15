@@ -16,9 +16,9 @@ void HuffmanTree::createHuffmanTree() {
     }
 }
 
-map<char, string> HuffmanTree::createHuffmanCode() {
+unordered_map<char, string> HuffmanTree::createHuffmanCode() {
     string huffmanCode;
-    map<char, string> charCode;
+    unordered_map<char, string> charCode;
     createHuffmanTree();
     HuffmanNode* root = q.top();
     subCreateHuffmanCode(root,huffmanCode,charCode);
@@ -26,7 +26,7 @@ map<char, string> HuffmanTree::createHuffmanCode() {
 }
 
 void HuffmanTree::subCreateHuffmanCode(HuffmanNode* root, 
-                string huffmancode, map<char,string>& charCode) {
+                string huffmancode, unordered_map<char,string>& charCode) {
 
     if(isLeaf(root)) {
         charCode[root->data] = huffmancode;

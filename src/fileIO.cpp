@@ -92,7 +92,7 @@ void FileIO::compressFile(const string &filename, const string &outputFileName)
         map<char, long long> freqTable = makeCharFreq(filename);
         HuffmanTree tree(freqTable);
         tree.createHuffmanTree();
-        map<char, string> charCode = tree.createHuffmanCode();
+        unordered_map<char, string> charCode = tree.createHuffmanCode();
 
         // 写入压缩文件
         ifstream inputFile(filename, ios::in | ios::binary);
