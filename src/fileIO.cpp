@@ -7,22 +7,57 @@
 namespace fs = std::filesystem;
 
 // 读取单个文件内容并构建字符频率表（没问题）
+// map<char, long long> FileIO::makeCharFreq(const string &filename)
+// {
+//     ifstream file(filename, ios::in | ios::binary);
+//     map<char, long long> freqTable;
+    
+//     vector<char> buffer(BUFFER_SIZE);
+//     while (file.read(buffer.data(), buffer.size()) || file.gcount() > 0)
+//     {
+//         for (size_t i = 0; i < file.gcount(); i++)
+//         {
+//             freqTable[buffer[i]]++;
+//         }
+//     }
+//     file.close();
+//     return freqTable;
+// }
 map<char, long long> FileIO::makeCharFreq(const string &filename)
 {
     ifstream file(filename, ios::in | ios::binary);
-    map<char, long long> freqTable;
     
-    vector<char> buffer(1024);
+    // 使用数组来代替 map，避免多次分配内存
+    // 假设文件中只有ASCII字符
+    long long freqArray[256] = {0};
+    
+    vector<char> buffer(BUFFER_SIZE);
+    
+    // 批量读取数据
     while (file.read(buffer.data(), buffer.size()) || file.gcount() > 0)
     {
+        // 更新频率数组
         for (size_t i = 0; i < file.gcount(); i++)
         {
-            freqTable[buffer[i]]++;
+            // 确保读取到的字符被正确映射到数组的索引
+            unsigned char ch = (unsigned char)(buffer[i]);  // 转换为无符号字符
+            freqArray[ch]++;
         }
     }
+    
     file.close();
+    
+    // 将数组中的频率转换为 map 返回
+    map<char, long long> freqTable;
+    for (int i = 0; i < 256; ++i) {
+        if (freqArray[i] > 0) {
+            freqTable[(char)(i)] = freqArray[i];
+        }
+    }
+    
     return freqTable;
 }
+
 
 // 压缩单个文件
 void FileIO::compressFile(const string &filename, const string &outputFileName)
@@ -86,36 +121,29 @@ void FileIO::compressFile(const string &filename, const string &outputFileName)
         outputFile.write("\n",1);
 
         // 写入主内容
-        vector<char> inputBuffer(1024);
-        vector<char> outputBuffer;
-        // string buffer;
+        vector<char> inputBuffer(BUFFER_SIZE);
+        vector<char> outputBuffer(BUFFER_SIZE);
+        int outputIndex = 0;
         bitset<8> bits;
         int bitcount = 0;
-        while (inputFile.read(inputBuffer.data(), inputBuffer.size()) || inputFile.gcount() > 0)
-        {
-            // for (size_t i = 0; i < inputFile.gcount(); i++)
-            // {
-            //     buffer += charCode[inputBuffer[i]];
-            // }
-            // while (buffer.size() >= 8)
-            // {
-            //     bitset<8> bits(buffer.substr(0, 8));
-            //     outputBuffer.push_back((char)(bits.to_ulong()));
-            //     buffer.erase(0, 8);
-            // }
-            
-            for(size_t i = 0; i < inputFile.gcount(); i++){
-                for(size_t j = 0; j < charCode[inputBuffer[i]].length(); j++){
-                    bits[bitcount++] = charCode[inputBuffer[i]][j] == '1' ? 1 : 0; 
+        while (inputFile.read(inputBuffer.data(), inputBuffer.size()) ||  inputFile.gcount() > 0)
+        {   
+            int count = inputFile.gcount();
+            for(size_t i = 0; i < count; i++){
+                string currentChar = charCode[inputBuffer[i]];
+                for(size_t j = 0; j < currentChar.length(); j++){
+                    bits[bitcount++] = currentChar[j] == '1' ? 1 : 0; 
                     if(bitcount == 8){
-                        outputBuffer.push_back((char)bits.to_ulong());
+                        outputBuffer[outputIndex++] = (char)(bits.to_ulong());
                         bits.reset();  // 清空累计的位
                         bitcount = 0;
                     }
+                    if(outputIndex == BUFFER_SIZE){
+                        outputFile.write(outputBuffer.data(), outputIndex);
+                        outputIndex = 0;
+                    }
                 }
             }
-            outputFile.write(outputBuffer.data(), outputBuffer.size());
-            outputBuffer.clear();
         }
         if (!!bitcount)
         {
@@ -123,10 +151,9 @@ void FileIO::compressFile(const string &filename, const string &outputFileName)
             for(int i = bitcount; i < 8;i++){
                 bits[i] = 0;
             }
-            outputBuffer.push_back((char)(bits.to_ulong()));
+            outputBuffer[outputIndex++] = (char)(bits.to_ulong());
         }
-        outputFile.write(outputBuffer.data(), outputBuffer.size());
-        outputBuffer.clear();
+        outputFile.write(outputBuffer.data(), outputIndex);
         inputFile.close();
         outputFile.close();
     }

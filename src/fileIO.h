@@ -8,6 +8,7 @@
 #include <string>
 #include "HuffmanTree.h"
 
+#define BUFFER_SIZE (512*1024)
 using namespace std;
 
 // 文件头信息

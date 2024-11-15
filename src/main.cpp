@@ -6,6 +6,6 @@ int main() {
     clock_t start = clock();
     Execution(choice);
     clock_t end = clock();
-    cout << "压缩时间为:" << end - start << endl;
+    cout << "压缩时间为:" << (end - start) / CLOCKS_PER_SEC << endl;
     return 0;
 }
