@@ -45,10 +45,15 @@ void Execution(int choice) {
             break;
         }
         case DECOMPRESSFILE:
-        case DECOMPRESSDIRECTORY:
         {
             auto names = printInteraction(DECOMPRESSFILE);
             tool.decompress(names[0],names[1]);
+            break;
+        }
+        case DECOMPRESSDIRECTORY:
+        {
+            auto names = printInteraction(DECOMPRESSFILE);
+            tool.decompressDir(names[0]);
             break;
         }
     }
@@ -62,6 +67,7 @@ string* printInteraction(int choice) {
             getline(cin,name[0]);
             cout << "请输入你要输出的文件文件名(不用加后缀)" << endl;
             getline(cin,name[1]);
+            name[1] += ".huffman"; 
             break;
         }
         case COMPRESSDIRECTORY:{
@@ -69,6 +75,7 @@ string* printInteraction(int choice) {
             getline(cin,name[0]);
             cout << "请输入你要输出的文件夹名(不用加后缀)" << endl;
             getline(cin,name[1]);
+            name[1] += ".huffman"; 
             break;
         }
         case DECOMPRESSFILE:{
@@ -87,4 +94,26 @@ string* printInteraction(int choice) {
         }
     }
     return name;
+}
+
+long long* getCompressDirSize(const string& filename, int filenameSize){
+    ifstream inputFile(filename, ios::in | ios::ate);
+    long long* filesize = new long long[filenameSize];
+    string line;
+
+    // 从文件末尾开始向前查找 '\n'
+    // 查看前一个字符是否为回车符
+    while (inputFile.peek() != '\n'){
+        inputFile.seekg(-1, inputFile.cur);
+    }
+    inputFile.seekg(2, inputFile.cur);
+
+    // 直接读取数字到filesize数组中
+    
+    for(int i = 0; i < filenameSize ; i++) {
+        inputFile >> filesize[i];
+    }
+    inputFile.close();
+
+    return filesize;
 }

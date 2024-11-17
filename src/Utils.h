@@ -24,4 +24,6 @@ int getEncodeOrDecode();
 void Execution(int choice);
 // 简化交互
 string* printInteraction(int choice);
+// 获得每个文件的压缩文件的大小
+long long* getCompressDirSize(const string& filename, int filenameSize);
 #endif

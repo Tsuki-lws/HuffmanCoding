@@ -1,7 +1,7 @@
 #include "features.h"
 #include "fileIO.h"
-
-
+#include "Utils.h"
+// 压缩
 void Features::compress(const string& filename, const string& outputFileName) {
     // 判断是文件还是文件夹
     if (isDirectory(filename)) {
@@ -13,88 +13,111 @@ void Features::compress(const string& filename, const string& outputFileName) {
     }
 }
 
-void Features::compressFile(const string& filename, const string& outputFileName) {
-
-    // 暂时没有考虑outputFileName是否已经存在，感觉应该在更上层考虑
+long long Features::compressFile(const string& filename, const string& outputFileName) {
+    long long size;
+    //判断是否存在目标文件
+    fs::path str(outputFileName);
+    fs::directory_entry entry(str);
+    //如果无目标文件,则其大小就是0
+    if(entry.status().type() == fs::file_type::not_found)
+        size = 0;
+    else
+        size = file_size(str);
     FileIO fileIO;
     map<char, long long> charFreq = fileIO.makeCharFreq(filename);
     fileIO.compressFile(filename, outputFileName);
+    // 返回压缩单个文件的大小
+    return file_size(str);
 }
-
+// 压缩文件夹
 void Features::compressDirectory(const string& dirPath, const string& outputFileName) {    
     // 获取目录下的文件夹信息以及文件信息
     vector<string> dirname;
     vector<string> filename;
 
-    
     // 将原文件夹路径完整的记录下来
     dirname.push_back(dirPath);
     // 遍历这个dirPath文件夹,将文件加入到filename，将文件夹加入到dirname,相对路径了
     // 这里存储的是 /什么什么 注意“/”
     for (const auto& entry : fs::recursive_directory_iterator(dirPath)) {
         if (fs::is_directory(entry.path())) {
-            dirname.push_back(entry.path().string().substr(dirPath.length()));
+            dirname.push_back(entry.path().string());
         } else if (fs::is_regular_file(entry.path())) {
-            filename.push_back(entry.path().string().substr(dirPath.length()));
+            filename.push_back(entry.path().string());
         }
     }
 
     // 打开文件开写
     ofstream output(outputFileName, ios::out | ios::app);
-    output << dirname.size() << endl;
-    for (int i = 0; i < dirname.size(); i++){
+    int filenameSize = filename.size();
+    int dirnameSize = dirname.size();
+    output << dirnameSize << endl;
+    for (int i = 0; i < dirnameSize; i++){
         output << dirname[i] << endl;
     }
-    output << filename.size() << endl;
-    for (int i = 0; i < filename.size();i++){
+    output << filenameSize << endl;
+    for (int i = 0; i < filenameSize;i++){
         //写文件名
         output << filename[i] << endl;
     }
     output.close();
 
+    // 记录每个压缩文件的大小
+    long long filesize[filenameSize];
     // 挨个压缩文件
     for (const auto& file : filename) {
-        compressFile(file, outputFileName);
+        int i = 0;
+        long long size = compressFile(file, outputFileName);
+        filesize[i++] = size;
     }
 
-    // 处理文件夹（如果需要递归处理文件夹，可以在这里添加逻辑）
-    for (const auto& dir : dirname) {
-        // 这里可以添加处理文件夹的逻辑
+    // 写压缩后的大小,文本文件形式打开
+    ofstream output_1(outputFileName, ios::out | ios::app);
+    output_1 << "\n";
+    for (int i = 0; i < filenameSize;i++){
+        output_1 << filesize[i] << " " ;
     }
-
-
-    
 }
-
+// 判断是否是文件夹
 bool Features::isDirectory(const string& path) {
     return fs::is_directory(path);
 }
-//到了递归(可能不用)创建文件夹
-// vector<string> Features::getFilesInDirectory(const string& dirPath) {
-//     vector<string> files;
-//     DIR* dir = opendir(dirPath.c_str());
-//     if (dir != nullptr) {
-//         struct dirent* entity;
-//         while ((entity = readdir(dir)) != nullptr) {
-//             if (entity->d_type == DT_REG) { // 只处理常规文件
-//                 files.push_back(dirPath + "/" + entity->d_name);
-//             }
-//         }
-//         closedir(dir);
-//     }
-//     return files;
-// }
-
-string Features::getFileName(const string& filePath) {
-    size_t pos = filePath.find_last_of("/\\");
-    if (pos == string::npos) {
-        return filePath;
-    } else {
-        return filePath.substr(pos + 1);
-    }
-}
-
+// 解压缩文件
 void Features::decompress(const string& filename, string& outputFileName) {
     FileIO fileIO;
-    fileIO.decompressFile(filename,outputFileName);
+    fileIO.decompressFile(filename,outputFileName,fs::file_size(filename),0);
+}
+void Features::decompressDir(const string& filename){
+    ifstream inputFile(filename, ios::in);
+    string dirNum, fileNum;
+    int dirnameSize,filenameSize;
+    string path;
+    // 处理文件夹
+    getline(inputFile,dirNum);
+    dirnameSize = stoi(dirNum);
+    for(int i = 0; i < dirnameSize; i++){
+        getline(inputFile,path);
+        fs::create_directories(path);
+    }
+    // 处理文件
+    getline(inputFile,fileNum);
+    filenameSize = stoi(fileNum);
+
+    if(filenameSize == 0) {
+        return;
+    }
+    string filepath[filenameSize];
+    for(int i = 0; i < filenameSize; i++){
+        getline(inputFile,path);
+        filepath[i] = path;
+    }
+    streampos startIndex = inputFile.tellg();
+    inputFile.close();
+    // 获得每个文件的压缩文件的大小
+    long long* filesize = getCompressDirSize(filename,filenameSize);
+    // 对各个文件进行解压
+    for(int i = 0; i < filenameSize; i++) {
+        FileIO fileIO;
+        startIndex = fileIO.decompressFile(filename,filepath[i],filesize[i],startIndex);
+    }
 }

@@ -36,17 +36,17 @@ class FileIO{
 
         // 压缩单个文件
         void compressFile(const string& filename, const string& outputFileName);
-
         //解压缩部分-------------------------------------------------------------
 
         //读取压缩文件头信息
-        pair<fileHead,streampos> readFileHead(const string& filename);
+        pair<fileHead,streampos> readFileHead(const string& filename,const streampos &startIndex);
 
         //读取压缩文件字符频度信息,构建哈夫曼树
         pair<map<char, long long>,streampos> readCompressTFileFreq(const string& filename,
                                                         int alphaVarity,streampos currentPos);
         // 解压缩单个文件
-        void decompressFile(const string& filename, string& outputFileName);
+        streampos decompressFile(const string& filename, string& outputFileName,
+                                                    long long filesize,streampos startIndex);
 
         // // 判断是否是文件夹
         // bool isDirectory(const string& filename);

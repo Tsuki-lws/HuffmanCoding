@@ -21,14 +21,11 @@ class Features {
         // 判断是否是文件夹
         bool isDirectory(const string& filename);
         
-        // 返回文件夹中的所有文件路径
-        vector<string> getFilesInDirectory(const string& dirPath);
-
-        // 返回文件的相对路径
-        string getFileName(const string& filePath);
+        // 解压缩文件夹
+        void decompressDir(const string& filename);
     private:
         // 压缩单个文件
-        void compressFile(const string& filename, const string& outputFileName);
+        long long compressFile(const string& filename, const string& outputFileName);
 
         // 压缩文件夹
         void compressDirectory(const string& dirPath, const string& outputFileName);
