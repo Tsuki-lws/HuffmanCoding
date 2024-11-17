@@ -105,18 +105,21 @@ void FileIO::compressFile(const string &filename, const string &outputFileName)
         char inputBuffer[BUFFER_SIZE];
         char outputBuffer[BUFFER_SIZE];
         int outputIndex = 0;
-        bitset<8> bits;
+        unsigned char bits = 0;
         int bitcount = 0;
         while (inputFile.read(inputBuffer, sizeof(inputBuffer)) ||  inputFile.gcount() > 0)
         {   
             int count = inputFile.gcount();
             for(size_t i = 0; i < count; i++){
                 string currentChar = charCode[inputBuffer[i]];
-                for(size_t j = 0; j < currentChar.length(); j++){
-                    bits[bitcount++] = currentChar[j] == '1'; 
+                int length = currentChar.length();
+                for(size_t j = 0; j < length; j++){
+                    bits <<= 1;
+                    bits |= (currentChar[j] == '1'); 
+                    bitcount++;
                     if(bitcount == 8){
-                        outputBuffer[outputIndex++] = (char)(bits.to_ulong());
-                        // bits.reset();  // 清空累计的位
+                        outputBuffer[outputIndex++] = bits;
+                        bits = 0;
                         bitcount = 0;
                     }
                     if(outputIndex == BUFFER_SIZE){
@@ -130,9 +133,10 @@ void FileIO::compressFile(const string &filename, const string &outputFileName)
         {
             // 补齐八位
             for(int i = bitcount; i < 8;i++){
-                bits[i] = 0;
+                bits <<= 1;
+                bits |= 0;
             }
-            outputBuffer[outputIndex++] = (char)(bits.to_ulong());
+            outputBuffer[outputIndex++] = bits;
         }
         outputFile.write(outputBuffer, outputIndex);
         inputFile.close();
@@ -219,7 +223,7 @@ void FileIO::decompressFile(const string &filename, string &outputFileName)
             char byte = inputBuffer[i];
             for (int j = 0; j < 8; j++)
             {
-                bool bit = byte & (1 << j);
+                bool bit = byte & (1 << (7 - j));
                 current = bit ? current->right : current->left;
                 if (!current->left && !current->right)
                 {
