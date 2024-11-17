@@ -106,12 +106,14 @@ long long* getCompressDirSize(const string& filename, int filenameSize){
     while (inputFile.peek() != '\n'){
         inputFile.seekg(-1, inputFile.cur);
     }
-    inputFile.seekg(2, inputFile.cur);
+    inputFile.seekg(1, inputFile.cur);
 
     // 直接读取数字到filesize数组中
-    
+    // string a;
+    // getline(inputFile, a);
     for(int i = 0; i < filenameSize ; i++) {
         inputFile >> filesize[i];
+        inputFile.get();
     }
     inputFile.close();
 

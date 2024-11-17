@@ -30,9 +30,6 @@ class Features {
         // 压缩文件夹
         void compressDirectory(const string& dirPath, const string& outputFileName);
 
-        // // 解压缩文件
-        // void decompressFile(const string& filename, const string& outputFileName);
-
 };
 
 #endif

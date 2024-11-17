@@ -59,6 +59,10 @@
         "ratio": "cpp",
         "fstream": "cpp",
         "iomanip": "cpp",
-        "sstream": "cpp"
+        "sstream": "cpp",
+        "complex": "cpp",
+        "cstdarg": "cpp",
+        "cstring": "cpp",
+        "cinttypes": "cpp"
     }
 }
