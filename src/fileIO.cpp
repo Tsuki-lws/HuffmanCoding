@@ -102,25 +102,25 @@ void FileIO::compressFile(const string &filename, const string &outputFileName)
         // outputFile.write("\n",1);
 
         // 写入主内容
-        vector<char> inputBuffer(BUFFER_SIZE);
-        vector<char> outputBuffer(BUFFER_SIZE);
+        char inputBuffer[BUFFER_SIZE];
+        char outputBuffer[BUFFER_SIZE];
         int outputIndex = 0;
         bitset<8> bits;
         int bitcount = 0;
-        while (inputFile.read(inputBuffer.data(), inputBuffer.size()) ||  inputFile.gcount() > 0)
+        while (inputFile.read(inputBuffer, sizeof(inputBuffer)) ||  inputFile.gcount() > 0)
         {   
             int count = inputFile.gcount();
             for(size_t i = 0; i < count; i++){
                 string currentChar = charCode[inputBuffer[i]];
                 for(size_t j = 0; j < currentChar.length(); j++){
-                    bits[bitcount++] = currentChar[j] == '1' ? 1 : 0; 
+                    bits[bitcount++] = currentChar[j] == '1'; 
                     if(bitcount == 8){
                         outputBuffer[outputIndex++] = (char)(bits.to_ulong());
                         // bits.reset();  // 清空累计的位
                         bitcount = 0;
                     }
                     if(outputIndex == BUFFER_SIZE){
-                        outputFile.write(outputBuffer.data(), outputIndex);
+                        outputFile.write(outputBuffer, outputIndex);
                         outputIndex = 0;
                     }
                 }
@@ -134,7 +134,7 @@ void FileIO::compressFile(const string &filename, const string &outputFileName)
             }
             outputBuffer[outputIndex++] = (char)(bits.to_ulong());
         }
-        outputFile.write(outputBuffer.data(), outputIndex);
+        outputFile.write(outputBuffer, outputIndex);
         inputFile.close();
         outputFile.close();
     }
@@ -207,27 +207,27 @@ void FileIO::decompressFile(const string &filename, string &outputFileName)
     // 定位到存储文件的位置
     inputFile.seekg(newPos);
     // 缓冲区
-    vector<char> inputBuffer(BUFFER_SIZE);
-    vector<char> outputBuffer(BUFFER_SIZE);
+    char inputBuffer[BUFFER_SIZE];
+    char outputBuffer[BUFFER_SIZE];
     int outputIndex = 0;
     int writeByte = 0;
-    while (inputFile.read(inputBuffer.data(), inputBuffer.size()) || inputFile.gcount() > 0)
+    while (inputFile.read(inputBuffer, sizeof(inputBuffer)) || inputFile.gcount() > 0)
     {
         int count = inputFile.gcount();
         for (size_t i = 0; i < count; i++)
         {
-            bitset<8> bits((char)(inputBuffer[i]));
-            // bit[0]是字符串的末尾一位,现在不确定对不对，我改了
+            char byte = inputBuffer[i];
             for (int j = 0; j < 8; j++)
             {
-                current = bits[j] ? current->right : current->left;
+                bool bit = byte & (1 << j);
+                current = bit ? current->right : current->left;
                 if (!current->left && !current->right)
                 {
                     outputBuffer[outputIndex++] = current->data;
                     writeByte++;
                     current = root;
                     if(outputIndex == BUFFER_SIZE ){
-                        outputFile.write(outputBuffer.data(), outputIndex);
+                        outputFile.write(outputBuffer, outputIndex);
                         outputIndex = 0;
                     }
                     // 处理多余的字符
@@ -240,7 +240,7 @@ void FileIO::decompressFile(const string &filename, string &outputFileName)
     }
 finish: ;
     if(outputIndex > 0){
-        outputFile.write(outputBuffer.data(), outputIndex);
+        outputFile.write(outputBuffer, outputIndex);
     }
     // // 获取文件大小
     // outputFile.close(); // 关闭文件以确保所有数据都写入
