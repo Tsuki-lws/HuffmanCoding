@@ -2,17 +2,34 @@
 #include "fileIO.h"
 #include "Utils.h"
 // 压缩
-void Features::compress(const string &filename, const string &outputFileName)
+void Features::compress(const string &filename, const string &outputFileName, const string &password)
 {
+    ofstream output(outputFileName, ios::app | ios::out | ios::binary);
+    if(!password.empty()){
+        int passLength = password.size();
+        output.write(reinterpret_cast<char *>(&passLength), sizeof(passLength));
+        output.write(password.c_str(), passLength);
+    }else{
+        int passLength = 0;
+        output.write((char *)(&passLength), sizeof(passLength));
+    }
     // 判断是文件还是文件夹
     if (isDirectory(filename))
     {
-        // 是文件夹
+        // 0代表是文件夹
+        char zero = 0;
+        output.write(&zero, sizeof(zero));
+        output.close();
+        // 压缩文件夹
         compressDirectory(filename, outputFileName);
     }
     else
     {
-        // 是文件
+        // 1代表是文件
+        char one = 1;
+        output.write(&one,sizeof(one));
+        output.close();
+        // 压缩文件
         compressFile(filename, outputFileName);
     }
 }
@@ -109,16 +126,35 @@ bool Features::isDirectory(const string &path)
 {
     return fs::is_directory(path);
 }
+// 解压缩
+void Features::decompress(const string& filename, string& outputFileName, int passLength){
+    ifstream input(filename, ios::in | ios::binary);
+    input.seekg(sizeof(passLength) + passLength * sizeof(char));
+    char choice;
+    input.read(&choice,sizeof(char));
+    streampos currentPos = input.tellg();
+    switch(choice) {
+        case 0:
+        {
+            decompressDir(filename,currentPos);
+        }
+        case 1:
+        {
+            decompressFile(filename, outputFileName,currentPos);
+        }
+    }
+}
 // 解压缩文件
-void Features::decompress(const string &filename, string &outputFileName)
+void Features::decompressFile(const string &filename, string &outputFileName, streampos currentPos)
 {
     FileIO fileIO;
-    fileIO.decompressFile(filename, outputFileName, fs::file_size(filename), 0);
+    fileIO.decompressFile(filename, outputFileName, fs::file_size(filename), currentPos);
 }
-
-void Features::decompressDir(const string &filename)
+// 解压缩文件夹
+void Features::decompressDir(const string &filename, streampos currentPos)
 {
     ifstream inputFile(filename, ios::in | ios::binary);
+    inputFile.seekg(currentPos);
     int dirnameSize, filenameSize;
     string path;
 

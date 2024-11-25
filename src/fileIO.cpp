@@ -56,8 +56,6 @@ void FileIO::compressFile(const string &filename, const string &outputFileName)
 
         outputFile.write(reinterpret_cast<char *>(&filehead), sizeof(filehead));
 
-        outputFile.write("\n",1);
-
         inputFile.close();
         outputFile.close();
     }

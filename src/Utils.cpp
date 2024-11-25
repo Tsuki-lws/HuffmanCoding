@@ -41,24 +41,31 @@ void Execution(int choice) {
         case COMPRESSDIRECTORY:
         {
             auto names = printInteraction(COMPRESSFILE);
-            tool.compress(names[0],names[1]);
+            // 添加压缩密码
+            string password = encrypt();
+            
+            clock_t start = clock();
+            cout << "压缩中,请等待" << endl;
+            tool.compress(names[0],names[1],password);
+            clock_t end = clock();
+            cout << "压缩成功" << endl <<"压缩时间为:" << (end - start) / CLOCKS_PER_SEC << endl;
             break;
         }
         case DECOMPRESSFILE:
-        {
-            auto names = printInteraction(DECOMPRESSFILE);
-            tool.decompress(names[0],names[1]);
-            break;
-        }
         case DECOMPRESSDIRECTORY:
         {
             auto names = printInteraction(DECOMPRESSFILE);
-            tool.decompressDir(names[0]);
+            int passLength = passwordCorrect(names[0]);
+            clock_t start = clock();
+            cout << "解压缩中,请等待" << endl;
+            tool.decompress(names[0],names[1],passLength);
+            clock_t end = clock();
+            cout << "解压缩成功" << endl <<"解压缩时间为:" << (end - start) / CLOCKS_PER_SEC << endl;
             break;
         }
     }
 }
-
+// 简化交互
 string* printInteraction(int choice) {
     static string name[2];
     switch(choice) {
@@ -86,7 +93,7 @@ string* printInteraction(int choice) {
             break;
         }
         case DECOMPRESSDIRECTORY:{
-            cout << "请输入你要解压缩的文件路径" << endl;
+            cout << "请输入你要解压缩的文件路径(包含后缀)" << endl;
             getline(cin,name[0]);
             // cout << "请输入你要输出的文件夹名" << endl;
             // getline(cin,name[1]);
@@ -95,7 +102,7 @@ string* printInteraction(int choice) {
     }
     return name;
 }
-
+// 获得每个文件的压缩文件的大小
 long long* getCompressDirSize(const string& filename, int filenameSize){
     ifstream inputFile(filename, ios::in | ios::ate);
     long long* filesize = new long long[filenameSize];
@@ -118,4 +125,59 @@ long long* getCompressDirSize(const string& filename, int filenameSize){
     inputFile.close();
 
     return filesize;
+}
+// 是否加密
+string encrypt(){
+    cout << "您是否要选择加密\n1.y\n2.n" << endl;
+    string password = "";
+    while(1){
+        string s;
+        getline(cin,s);
+        if(s.length() == 1){
+            if(s == "y"){
+                cout << "请输入密码" << endl;
+                getline(cin,password);
+                return password;
+            }else if(s == "n"){
+                return password;
+            }else{
+                cout << "格式不正确,请重新输入" << endl;
+                continue;
+            }
+        }else{
+            cout << "格式不正确,请重新输入" << endl;
+            continue;
+        }
+    }
+}
+// 是否解密
+string decode(){
+    cout << "请输入解压密码" << endl;
+    string password;
+    getline(cin,password);
+    return password;
+}
+// 判断密码是否正确,返回密码长度
+int passwordCorrect(const string& filename) {
+    ifstream input(filename,ios::in | ios::binary);
+    int passLength;
+    int result;
+    input.read(reinterpret_cast<char *>(&passLength), sizeof(passLength));
+    if(passLength == 0){
+        // return PasswordStatus::NONE;
+        return passLength;
+    }else{
+        string correctPassword(passLength, '\0');
+        input.read(&correctPassword[0], passLength);
+        while(1){
+            string inputPassword = decode();
+            if (inputPassword == correctPassword) {
+                // return PasswordStatus::CORRECT;
+                return passLength;
+            } else {
+                cout << "密码错误,请重新输入" << endl;
+                continue;
+            }
+        }
+    }
 }
