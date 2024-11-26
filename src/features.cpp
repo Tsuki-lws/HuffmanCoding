@@ -37,6 +37,7 @@ void Features::compress(const string &filename, const string &outputFileName, co
 long long Features::compressFile(const string &filename, const string &outputFileName)
 {
     long long size;
+
     // 判断是否存在目标文件
     fs::path str(outputFileName);
     fs::directory_entry entry(str);
@@ -47,6 +48,9 @@ long long Features::compressFile(const string &filename, const string &outputFil
         size = file_size(str);
     FileIO fileIO;
     map<char, long long> charFreq = fileIO.makeCharFreq(filename);
+    // // 不带前缀的文件名
+    // string newfilename = fs::path(filename).filename().string(); 
+    
     fileIO.compressFile(filename, outputFileName);
     // 返回压缩单个文件的大小
     long long aftersize = file_size(str);

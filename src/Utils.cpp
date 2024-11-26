@@ -152,7 +152,6 @@ string encrypt(){
 }
 // 是否解密
 string decode(){
-    cout << "请输入解压密码" << endl;
     string password;
     getline(cin,password);
     return password;
@@ -169,6 +168,7 @@ int passwordCorrect(const string& filename) {
     }else{
         string correctPassword(passLength, '\0');
         input.read(&correctPassword[0], passLength);
+        cout << "请输入解压密码" << endl;
         while(1){
             string inputPassword = decode();
             if (inputPassword == correctPassword) {

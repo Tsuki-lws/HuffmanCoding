@@ -35,6 +35,64 @@ map<char, long long> FileIO::makeCharFreq(const string &filename)
     return freqTable;
 }
 
+void writeFileHead(ofstream &outputFile, fileHead filehead){
+    // 写入结构体的非指针成员
+    outputFile.write(reinterpret_cast<const char*>(&filehead.alphaVarity), sizeof(filehead.alphaVarity));
+    outputFile.write(reinterpret_cast<const char*>(&filehead.originBytes), sizeof(filehead.originBytes));
+    outputFile.write(reinterpret_cast<const char*>(&filehead.nameLength), sizeof(filehead.nameLength));
+    // 写入文件名内容
+    outputFile.write(filehead.name, filehead.nameLength + 1);
+}
+
+// 处理空文件
+void FileIO::handleEmptyFile(const string &filename, const string &outputFileName) {
+    ifstream inputFile(filename, ios::in | ios::binary);
+    ofstream outputFile(outputFileName, ios::out | ios::binary | ios::app);
+
+    fileHead filehead;
+    filehead.originBytes = 0;
+    filehead.alphaVarity = 0;
+    // 只存结尾文件,在这里不知道可不可以
+    string newName = fs::path(filename).filename().string();
+    filehead.nameLength = newName.length();
+    filehead.name = new char[filehead.nameLength + 1];
+    strncpy(filehead.name, newName.c_str(), filehead.nameLength);
+    filehead.name[filehead.nameLength] = '\0';
+
+    writeFileHead(outputFile, filehead);
+
+    inputFile.close();
+    outputFile.close();
+}
+
+// 处理非空文件头信息
+pair<map<char, long long>,unordered_map<char, string>> FileIO::handleNonEmptyFileHead(const string &filename, const string &outputFileName) {
+    // 读取文件并构建字符频率表，在后面可以改到前一层，把这4行作为参数传进来
+    // 这样应该可以解决解压缩文件代码中的错误（好像不太行，这是独立的）
+    map<char, long long> freqTable = makeCharFreq(filename);
+    HuffmanTree tree(freqTable);
+    tree.createHuffmanTree();
+    unordered_map<char, string> charCode = tree.createHuffmanCode();
+    // 写入压缩文件
+    ifstream inputFile(filename, ios::in | ios::binary);
+    // 以追加模式写入，不知道会不会有影响
+    ofstream outputFile(outputFileName, ios::out | ios::binary | ios::app);
+    fileHead filehead;
+    filehead.originBytes = inputFile.seekg(0, ios::end).tellg();
+    inputFile.seekg(0, ios::beg);
+    filehead.alphaVarity = charCode.size();
+    // 只存结尾文件,在这里不知道可不可以
+    string newName = fs::path(filename).filename().string();
+    filehead.nameLength = newName.length();
+    filehead.name = new char[filehead.nameLength + 1];
+    strncpy(filehead.name, newName.c_str(), filehead.nameLength);
+    filehead.name[filehead.nameLength] = '\0';
+    writeFileHead(outputFile, filehead);
+
+    inputFile.close();
+    outputFile.close();
+    return make_pair(freqTable, charCode);
+}
 // 压缩单个文件
 void FileIO::compressFile(const string &filename, const string &outputFileName)
 {
@@ -42,45 +100,36 @@ void FileIO::compressFile(const string &filename, const string &outputFileName)
     // 对于空文件，直接写入0
     if (std::filesystem::file_size(entry) == 0)
     {
-        // 读取原文件
-        ifstream inputFile(filename, ios::in | ios::binary);
-        // 以追加模式写入，不知道会不会有影响
-        ofstream outputFile(outputFileName, ios::out | ios::binary | ios::app);
-
-        // 写入文件头信息
-        fileHead filehead;
-        filehead.originBytes = 0;
-        filehead.alphaVarity = 0;
-        filehead.nameLength = filename.length();
-        strncpy(filehead.name, filename.c_str(), sizeof(filehead.name) - 1); // 将文件名存入字符数组
-
-        outputFile.write(reinterpret_cast<char *>(&filehead), sizeof(filehead));
-
-        inputFile.close();
-        outputFile.close();
+        handleEmptyFile(filename,outputFileName);
     }
     else
     {
-        // 读取文件并构建字符频率表，在后面可以改到前一层，把这4行作为参数传进来
-        // 这样应该可以解决解压缩文件代码中的错误（好像不太行，这是独立的）
-        map<char, long long> freqTable = makeCharFreq(filename);
-        HuffmanTree tree(freqTable);
-        tree.createHuffmanTree();
-        unordered_map<char, string> charCode = tree.createHuffmanCode();
+        auto[freqTable,charCode] = handleNonEmptyFileHead(filename,outputFileName);
+        // // 读取文件并构建字符频率表，在后面可以改到前一层，把这4行作为参数传进来
+        // // 这样应该可以解决解压缩文件代码中的错误（好像不太行，这是独立的）
+        // map<char, long long> freqTable = makeCharFreq(filename);
+        // HuffmanTree tree(freqTable);
+        // tree.createHuffmanTree();
+        // unordered_map<char, string> charCode = tree.createHuffmanCode();
 
         // 写入压缩文件
         ifstream inputFile(filename, ios::in | ios::binary);
         // 以追加模式写入，不知道会不会有影响
         ofstream outputFile(outputFileName, ios::out | ios::binary | ios::app);
 
-        // 写入文件头信息
-        fileHead filehead;
-        filehead.originBytes = inputFile.seekg(0, ios::end).tellg();
-        inputFile.seekg(0, ios::beg);
-        filehead.alphaVarity = charCode.size();
-        filehead.nameLength = filename.length();
-        strncpy(filehead.name, filename.c_str(), sizeof(filehead.name) - 1); // 将文件名存入字符数组
-        outputFile.write(reinterpret_cast<char *>(&filehead), sizeof(filehead));
+        // // 写入文件头信息
+        // fileHead filehead;
+        // filehead.originBytes = inputFile.seekg(0, ios::end).tellg();
+        // inputFile.seekg(0, ios::beg);
+        // filehead.alphaVarity = charCode.size();
+        // filehead.nameLength = filename.length();
+        // // 动态分配内存
+        // filehead.name = new char[filehead.nameLength + 1];
+
+        // // 拷贝文件名并确保字符串以 '\0' 结尾
+        // strncpy(filehead.name, filename.c_str(), filehead.nameLength);
+        // filehead.name[filehead.nameLength] = '\0';
+        // writeFileHead(outputFile,filehead);
         
         // 写入字符频度信息
         for (auto &entry : freqTable)
@@ -160,7 +209,12 @@ pair<fileHead,streampos> FileIO::readFileHead(const string &filename,const strea
     fileHead filehead;
     ifstream inputFile(filename, ios::in | ios::binary);
     inputFile.seekg(startIndex);
-    inputFile.read(reinterpret_cast<char*>(&filehead), sizeof(filehead));
+    inputFile.read(reinterpret_cast<char*>(&filehead.alphaVarity), sizeof(filehead.alphaVarity));
+    inputFile.read(reinterpret_cast<char*>(&filehead.originBytes), sizeof(filehead.originBytes));
+    inputFile.read(reinterpret_cast<char*>(&filehead.nameLength), sizeof(filehead.nameLength));
+    filehead.name = new char[filehead.nameLength + 1];
+    // 读取文件名内容
+    inputFile.read(filehead.name, filehead.nameLength + 1);
     
     // 记录当前文件指针位置
     streampos currentPos = inputFile.tellg();
@@ -261,10 +315,12 @@ streampos FileIO::decompressFile(const string &filename, string &outputFileName,
         char byte = inputBuffer[i];
         for (int j = 0; j < 8; j++)
         {
-            bool bit = byte & (1 << (7 - j));
-            current = bit ? current->right : current->left;
-            if (!current->left && !current->right)
+            if (!tree.isLeaf(current))
             {
+                bool bit = byte & (1 << (7 - j));
+                current = bit ? current->right : current->left;
+            }
+            if(tree.isLeaf(current)){
                 outputBuffer[outputIndex++] = current->data;
                 writeByte++;
                 current = root;
@@ -315,25 +371,3 @@ finish: ;
     inputFile.close();
     return nowPos;
 }
-
-// // 判断是否是文件夹
-// bool fileIO::isDirectory(const string& filename) {
-//     return fs::is_directory(filename);
-// }
-
-// // 压缩文件,输出到outputFileName
-// void fileIO::compress(const string& filename, const string& outputFileName) {
-//     if(isDirectory(filename)){
-//         compressDirectory(filename,outputFileName);
-//     }else{
-//         compressFile(filename,outputFileName);
-//     }
-// }
-// // 压缩文件夹,输出到outputFileName
-// void fileIO::compressDirectory(const string& dirPath, const string& outputFileName) {
-//     for (const auto& entry : fs::directory_iterator(dirPath)) {
-//         if (fs::is_regular_file(entry.path())) {
-//             compressFile(entry.path().string(),outputFileName);
-//         }
-//     }
-// }

@@ -6,6 +6,7 @@
 #include <fstream>
 #include <map>
 #include <string>
+#include <vector>
 #include "HuffmanTree.h"
 
 #define BUFFER_SIZE (512*1024)
@@ -16,10 +17,11 @@ struct fileHead {
     int alphaVarity; // 字符种类数量
     long long originBytes; // 源文件字节数
     int nameLength; // 文件名长度
-    char name[256]; // 文件名字符数组（可根据实际文件名长度调整大小）
+    char* name; // 文件名字符数组
+    fileHead() : originBytes(0), alphaVarity(0), nameLength(0), name(nullptr) {}
 };
 
-// 字母及其权值
+// 字母及其编码
 struct alphaCode {
     char alpha;
     long long freq;
@@ -52,12 +54,12 @@ class FileIO{
         // bool isDirectory(const string& filename);
 
         
-    // private:
-    //     // 压缩单个文件,输出到outputFileName
-    //     void compressFile(const string& filename, const string& outputFileName);
+    private:
+        // 处理空文件
+        void handleEmptyFile(const string &filename, const string &outputFileName);
 
-    //     // 压缩文件夹,输出到outputFileName
-    //     void compressDirectory(const string& filename, const string& outputFileName);
+        // 处理非空文件
+        pair<map<char, long long>,unordered_map<char, string>> handleNonEmptyFileHead(const string &filename,
+         const string &outputFileName);
 };
-
 #endif
