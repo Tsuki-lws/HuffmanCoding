@@ -12,6 +12,10 @@
 #define BUFFER_SIZE (512*1024)
 using namespace std;
 
+enum FileType {
+    FILE_TYPE = 1,
+    DIRECTORY = 0
+};
 // 文件头信息
 struct fileHead {
     int alphaVarity; // 字符种类数量
@@ -37,7 +41,7 @@ class FileIO{
         map<char, long long> makeCharFreq(const string& filename);
 
         // 压缩单个文件
-        void compressFile(const string& filename, const string& outputFileName);
+        void compressFile(const string& filename, const string& outputFileName, const string &prefix);
         //解压缩部分-------------------------------------------------------------
 
         //读取压缩文件头信息
@@ -47,19 +51,17 @@ class FileIO{
         pair<map<char, long long>,streampos> readCompressTFileFreq(const string& filename,
                                                         int alphaVarity,streampos currentPos);
         // 解压缩单个文件
-        streampos decompressFile(const string& filename, string& outputFileName,
-                                                    long long filesize,streampos startIndex);
-
-        // // 判断是否是文件夹
-        // bool isDirectory(const string& filename);
+        streampos decompressFile(const string& filename,string& outputFileName,
+                                                    long long filesize,streampos startIndex,int type);
 
         
     private:
         // 处理空文件
-        void handleEmptyFile(const string &filename, const string &outputFileName);
+        void handleEmptyFile(const string &filename, const string &outputFileName, const string &prefix,
+                                                                     ifstream &inputFile,ofstream &outputFile);
 
         // 处理非空文件
         pair<map<char, long long>,unordered_map<char, string>> handleNonEmptyFileHead(const string &filename,
-         const string &outputFileName);
+                    const string &outputFileName, const string &prefix, ifstream &inputFile,ofstream &outputFile);
 };
 #endif

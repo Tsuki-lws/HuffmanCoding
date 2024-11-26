@@ -29,12 +29,13 @@ void Features::compress(const string &filename, const string &outputFileName, co
         char one = 1;
         output.write(&one,sizeof(one));
         output.close();
+        string prefix = "";
         // 压缩文件
-        compressFile(filename, outputFileName);
+        compressFile(filename, outputFileName,prefix);
     }
 }
 
-long long Features::compressFile(const string &filename, const string &outputFileName)
+long long Features::compressFile(const string &filename, const string &outputFileName, const string &prefix)
 {
     long long size;
 
@@ -50,8 +51,7 @@ long long Features::compressFile(const string &filename, const string &outputFil
     map<char, long long> charFreq = fileIO.makeCharFreq(filename);
     // // 不带前缀的文件名
     // string newfilename = fs::path(filename).filename().string(); 
-    
-    fileIO.compressFile(filename, outputFileName);
+    fileIO.compressFile(filename, outputFileName, prefix);
     // 返回压缩单个文件的大小
     long long aftersize = file_size(str);
     long long result = aftersize - size;
@@ -63,20 +63,22 @@ void Features::compressDirectory(const string &dirPath, const string &outputFile
     // 获取目录下的文件夹信息以及文件信息
     vector<string> dirname;
     vector<string> filename;
-
-    // 将原文件夹路径完整的记录下来
-    dirname.push_back(dirPath);
+    // // 将原文件夹路径完整的记录下来
+    // dirname.push_back(dirPath);
+    // 最前缀
+    string prefix = fs::path(dirPath).parent_path().string();/*fs::path(dirPath).filename().string();// 相对路径*/
+    int sLength = prefix.length() + 1;
+    dirname.push_back(fs::path(dirPath).filename().string());
     // 遍历这个dirPath文件夹,将文件加入到filename，将文件夹加入到dirname,相对路径了
-    // 这里存储的是 /什么什么 注意“/”
     for (const auto &entry : fs::recursive_directory_iterator(dirPath))
     {
         if (fs::is_directory(entry.path()))
         {
-            dirname.push_back(entry.path().string());
+            dirname.push_back(entry.path().string().substr(sLength));
         }
         else if (fs::is_regular_file(entry.path()))
         {
-            filename.push_back(entry.path().string());
+            filename.push_back(entry.path().string().substr(sLength));
         }
     }
 
@@ -113,7 +115,7 @@ void Features::compressDirectory(const string &dirPath, const string &outputFile
     int i = 0;
     for (const auto &file : filename)
     {
-        long long size = compressFile(file, outputFileName);
+        long long size = compressFile(prefix + "\\" + file, outputFileName,prefix);
         filesize[i++] = size;
     }
 
@@ -152,7 +154,7 @@ void Features::decompress(const string& filename, string& outputFileName, int pa
 void Features::decompressFile(const string &filename, string &outputFileName, streampos currentPos)
 {
     FileIO fileIO;
-    fileIO.decompressFile(filename, outputFileName, fs::file_size(filename), currentPos);
+    fileIO.decompressFile(filename, outputFileName, fs::file_size(filename), currentPos, FileType::FILE_TYPE);
 }
 // 解压缩文件夹
 void Features::decompressDir(const string &filename, streampos currentPos)
@@ -197,6 +199,6 @@ void Features::decompressDir(const string &filename, streampos currentPos)
     for (int i = 0; i < filenameSize; i++)
     {
         FileIO fileIO;
-        startIndex = fileIO.decompressFile(filename, filepath[i], filesize[i], startIndex);
+        startIndex = fileIO.decompressFile(filename, filepath[i], filesize[i], startIndex,FileType::DIRECTORY);
     }
 }

@@ -23,7 +23,7 @@ class Features {
 
     private:
         // 压缩单个文件
-        long long compressFile(const string& filename, const string& outputFileName);
+        long long compressFile(const string& filename, const string& outputFileName, const string &prefix);
 
         // 压缩文件夹
         void compressDirectory(const string& dirPath, const string& outputFileName);
