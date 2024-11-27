@@ -36,12 +36,25 @@ map<char, long long> FileIO::makeCharFreq(const string &filename)
 }
 
 void writeFileHead(ofstream &outputFile, fileHead filehead){
-    // 写入结构体的非指针成员
-    outputFile.write(reinterpret_cast<const char*>(&filehead.alphaVarity), sizeof(filehead.alphaVarity));
-    outputFile.write(reinterpret_cast<const char*>(&filehead.originBytes), sizeof(filehead.originBytes));
-    outputFile.write(reinterpret_cast<const char*>(&filehead.nameLength), sizeof(filehead.nameLength));
-    // 写入文件名内容
-    outputFile.write(filehead.name, filehead.nameLength + 1);
+    // 计算总大小并分配缓冲区
+    size_t totalSize = sizeof(filehead.alphaVarity) + sizeof(filehead.originBytes) + sizeof(filehead.nameLength) + (filehead.nameLength + 1);
+    char* buffer = new char[totalSize];
+    char* ptr = buffer;
+
+    // 复制数据到缓冲区
+    memcpy(ptr, &filehead.alphaVarity, sizeof(filehead.alphaVarity));
+    ptr += sizeof(filehead.alphaVarity);
+    memcpy(ptr, &filehead.originBytes, sizeof(filehead.originBytes));
+    ptr += sizeof(filehead.originBytes);
+    memcpy(ptr, &filehead.nameLength, sizeof(filehead.nameLength));
+    ptr += sizeof(filehead.nameLength);
+    memcpy(ptr, filehead.name, filehead.nameLength + 1);
+
+    // 一次性写入所有数据
+    outputFile.write(buffer, totalSize);
+
+    // 释放缓冲区
+    delete[] buffer;
 }
 
 // 处理空文件
@@ -194,13 +207,27 @@ pair<fileHead,streampos> FileIO::readFileHead(const string &filename,const strea
     fileHead filehead;
     ifstream inputFile(filename, ios::in | ios::binary);
     inputFile.seekg(startIndex);
-    inputFile.read(reinterpret_cast<char*>(&filehead.alphaVarity), sizeof(filehead.alphaVarity));
-    inputFile.read(reinterpret_cast<char*>(&filehead.originBytes), sizeof(filehead.originBytes));
-    inputFile.read(reinterpret_cast<char*>(&filehead.nameLength), sizeof(filehead.nameLength));
-    filehead.name = new char[filehead.nameLength + 1];
-    // 读取文件名内容
-    inputFile.read(filehead.name, filehead.nameLength + 1);
+    // 计算前三个字段的总大小并分配缓冲区
+    size_t partialSize = sizeof(filehead.alphaVarity) + sizeof(filehead.originBytes) + sizeof(filehead.nameLength);
+    char* buffer = new char[partialSize];
     
+    // 一次性读取前三个字段的数据
+    inputFile.read(buffer, partialSize);
+    
+    // 解析缓冲区数据
+    char* ptr = buffer;
+    memcpy(&filehead.alphaVarity, ptr, sizeof(filehead.alphaVarity));
+    ptr += sizeof(filehead.alphaVarity);
+    memcpy(&filehead.originBytes, ptr, sizeof(filehead.originBytes));
+    ptr += sizeof(filehead.originBytes);
+    memcpy(&filehead.nameLength, ptr, sizeof(filehead.nameLength));
+    // 释放缓冲区
+    delete[] buffer;
+
+    // 读取文件名
+    filehead.name = new char[filehead.nameLength + 1];
+    inputFile.read(filehead.name, filehead.nameLength + 1);
+        
     // 记录当前文件指针位置
     streampos currentPos = inputFile.tellg();
     inputFile.close();
