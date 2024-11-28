@@ -22,22 +22,20 @@ class HuffmanNode {
             : data(data), freq(freq), left(left), right(right) {}
         
         // 优先队列是大顶堆,我们要实现小顶堆,权值从小到大排列,便于构建哈夫曼树
-        struct Compare {
-            //返回true时,说明a的优先级低于b
-            bool operator()(HuffmanNode* a, HuffmanNode* b) {
-                return a->freq > b->freq;  
-            }
-        };
+        bool operator<(const HuffmanNode &node) const{
+            return freq > node.freq;
+        }
 };
 
 class HuffmanTree {
     public:
         //从小到大排列的优先队列
-        priority_queue<HuffmanNode*, vector<HuffmanNode*>, HuffmanNode::Compare> q;
+        priority_queue<HuffmanNode> q;
         //构造函数
         HuffmanTree(map<char, long long> charFreq) {
-            for (auto& p : charFreq) {
-                q.push(new HuffmanNode(p.first, p.second));
+            for (auto p : charFreq) {
+                HuffmanNode node(p.first, p.second);
+                q.push(node);
             }
         }
         //创建哈夫曼树

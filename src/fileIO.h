@@ -16,15 +16,14 @@ enum FileType {
     FILE_TYPE = 1,
     DIRECTORY = 0
 };
-// 文件头信息
+// 文件头信息,单个文件
 struct fileHead {
     int alphaVarity; // 字符种类数量
     long long originBytes; // 源文件字节数
-    int nameLength; // 文件名长度
-    char* name; // 文件名字符数组
-    fileHead() : originBytes(0), alphaVarity(0), nameLength(0), name(nullptr) {}
+    // int nameLength; // 文件名长度
+    // char* name; // 文件名字符数组
+     fileHead() : originBytes(0), alphaVarity(0){}
 };
-
 // 字母及其编码
 struct alphaCode {
     char alpha;
@@ -61,7 +60,7 @@ class FileIO{
                                                                      ifstream &inputFile,ofstream &outputFile);
 
         // 处理非空文件
-        pair<map<char, long long>,unordered_map<char, string>> handleNonEmptyFileHead(const string &filename,
+        string* handleNonEmptyFileHead(const string &filename,
                     const string &outputFileName, const string &prefix, ifstream &inputFile,ofstream &outputFile);
 };
 #endif

@@ -28,7 +28,13 @@ void Features::compress(const string &filename, const string &outputFileName, co
         // 1代表是文件
         char one = 1;
         output.write(&one,sizeof(one));
+        // 将相对路径压入文件
+        string path = fs::path(filename).filename().string();
+        int pathLength = path.size();
+        output.write((char *)(&pathLength), sizeof(pathLength));
+        output.write(path.c_str(), pathLength);
         output.close();
+
         string prefix = "";
         // 压缩文件
         compressFile(filename, outputFileName,prefix);
@@ -48,14 +54,14 @@ long long Features::compressFile(const string &filename, const string &outputFil
     else
         size = file_size(str);
     FileIO fileIO;
-    map<char, long long> charFreq = fileIO.makeCharFreq(filename);
+    // map<char, long long> charFreq = fileIO.makeCharFreq(filename);
     // // 不带前缀的文件名
     // string newfilename = fs::path(filename).filename().string(); 
     fileIO.compressFile(filename, outputFileName, prefix);
     // 返回压缩单个文件的大小
-    long long aftersize = file_size(str);
-    long long result = aftersize - size;
-    return result;
+    // long long aftersize = file_size(str);
+    // long long result = aftersize - size;
+    return (file_size(str) - size);
 }
 // 压缩文件夹
 void Features::compressDirectory(const string &dirPath, const string &outputFileName)
@@ -142,10 +148,12 @@ void Features::decompress(const string& filename, string& outputFileName, int pa
     switch(choice) {
         case 0:
         {
+            // 文件夹
             decompressDir(filename,currentPos);
         }
         case 1:
         {
+            // 文件
             decompressFile(filename, outputFileName,currentPos);
         }
     }

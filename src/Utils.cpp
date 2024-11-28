@@ -48,7 +48,7 @@ void Execution(int choice) {
             cout << "压缩中,请等待" << endl;
             tool.compress(names[0],names[1],password);
             clock_t end = clock();
-            cout << "压缩成功" << endl <<"压缩时间为:" << (end - start) / CLOCKS_PER_SEC << endl;
+            cout << "压缩成功" << endl << "压缩时间为:" << fixed << setprecision(2) << (double)(end - start) / CLOCKS_PER_SEC << "秒" << endl;
             break;
         }
         case DECOMPRESSFILE:
@@ -60,7 +60,7 @@ void Execution(int choice) {
             cout << "解压缩中,请等待" << endl;
             tool.decompress(names[0],names[1],passLength);
             clock_t end = clock();
-            cout << "解压缩成功" << endl <<"解压缩时间为:" << (end - start) / CLOCKS_PER_SEC << endl;
+            cout << "解压缩成功" << endl <<"解压缩时间为:" << fixed << setprecision(2) << (double)(end - start) / CLOCKS_PER_SEC << endl;
             break;
         }
     }
