@@ -4,7 +4,7 @@
 // 压缩
 void Features::compress(const string &filename, const string &outputFileName, const string &password)
 {
-    ofstream output(outputFileName, ios::app | ios::out | ios::binary);
+    ofstream output(outputFileName, ios::out | ios::binary);
     if(!password.empty()){
         int passLength = password.size();
         output.write(reinterpret_cast<char *>(&passLength), sizeof(passLength));
@@ -54,13 +54,7 @@ long long Features::compressFile(const string &filename, const string &outputFil
     else
         size = file_size(str);
     FileIO fileIO;
-    // map<char, long long> charFreq = fileIO.makeCharFreq(filename);
-    // // 不带前缀的文件名
-    // string newfilename = fs::path(filename).filename().string(); 
     fileIO.compressFile(filename, outputFileName, prefix);
-    // 返回压缩单个文件的大小
-    // long long aftersize = file_size(str);
-    // long long result = aftersize - size;
     return (file_size(str) - size);
 }
 // 压缩文件夹

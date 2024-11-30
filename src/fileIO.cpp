@@ -84,6 +84,7 @@ string* FileIO::handleNonEmptyFileHead(const string &filename,
     // 将charCode查找优化到O(1)
     static string charCodeArray[256];
     for (const auto& pair : charCode) {
+        // charCodeArray[(int)pair.first + 128] = pair.second;
         charCodeArray[(unsigned char)pair.first] = pair.second;
     }
     
@@ -93,7 +94,7 @@ string* FileIO::handleNonEmptyFileHead(const string &filename,
         alphaCode af(entry);
         outputFile.write(reinterpret_cast<char *>(&af), sizeof(af));
     }
-    // clock_t end = clock();
+    //  clock_t end = clock();
     // cout << "压缩处理总"<< end - a1 << endl;
     return charCodeArray;
 }
@@ -126,6 +127,7 @@ void FileIO::compressFile(const string &filename, const string &outputFileName, 
         for(int i = 0; i < times; i++){
             inputFile.read(inputBuffer, BUFFER_SIZE * sizeof(char));
             for(size_t i = 0; i < BUFFER_SIZE; i++){
+                // string currentChar = charCodeArray[(int)inputBuffer[i] + 128];
                 string currentChar = charCodeArray[(unsigned char)inputBuffer[i]];
                 int length = currentChar.length();
                 for(size_t j = 0; j < length; j++){
@@ -148,6 +150,7 @@ void FileIO::compressFile(const string &filename, const string &outputFileName, 
         long long others = filesize % BUFFER_SIZE;
         inputFile.read(inputBuffer, others * sizeof(char));
         for(size_t i = 0; i < others; i++){
+            // string currentChar = charCodeArray[(int)inputBuffer[i] + 128];
             string currentChar = charCodeArray[(unsigned char)inputBuffer[i]];
             int length = currentChar.length();
             for(size_t j = 0; j < length; j++){
