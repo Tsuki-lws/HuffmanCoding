@@ -150,11 +150,13 @@ void Features::decompress(const string& filename, string& outputFileName, int pa
         {
             // 文件夹
             decompressDir(filename,currentPos);
+            break;
         }
         case 1:
         {
             // 文件
             decompressFile(filename, outputFileName,currentPos);
+            break;
         }
     }
 }

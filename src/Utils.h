@@ -13,10 +13,8 @@
 using namespace std;
 
 enum  {
-    COMPRESSFILE = 1,
-    COMPRESSDIRECTORY = 2,
-    DECOMPRESSFILE = 3,
-    DECOMPRESSDIRECTORY = 4
+    COMPRESS = 1,
+    DECOMPRESS = 3
 };
 enum PasswordStatus {
     CORRECT = 1,

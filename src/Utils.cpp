@@ -3,7 +3,7 @@
 int getEncodeOrDecode()
 {
     cout << "======================欢迎使用哈夫曼压缩&解压缩工具========================" << endl;
-    cout << "请选择你要使用的功能\n1.压缩文件\n2.压缩文件夹\n3.解压缩文件\n4.解压缩文件夹" << endl;
+    cout << "请选择你要使用的功能\n1.压缩\n2.解压缩" << endl;
     while (1)
     {
         string line;
@@ -12,24 +12,20 @@ int getEncodeOrDecode()
         {
             if (line == "1")
             {
-                return COMPRESSFILE;
+                return COMPRESS;
             }
             else if (line == "2")
             {
-                return COMPRESSDIRECTORY;
-            }
-            else if (line == "3")
-            {
-                return DECOMPRESSFILE;
-            }
-            else if (line == "4")
-            {
-                return DECOMPRESSDIRECTORY;
+                return DECOMPRESS;
             }
             else
             {
                 cout << "无效输入" << endl;
             }
+        }
+        else
+        {
+            cout << "无效输入" << endl;
         }
     }
 }
@@ -37,10 +33,9 @@ int getEncodeOrDecode()
 void Execution(int choice) {
     Features tool;
     switch(choice) {
-        case COMPRESSFILE:
-        case COMPRESSDIRECTORY:
+        case COMPRESS:
         {
-            auto names = printInteraction(COMPRESSFILE);
+            auto names = printInteraction(COMPRESS);
             // 添加压缩密码
             string password = encrypt();
             
@@ -51,10 +46,9 @@ void Execution(int choice) {
             cout << "压缩成功" << endl << "压缩时间为:" << fixed << setprecision(2) << (double)(end - start) / CLOCKS_PER_SEC << "秒" << endl;
             break;
         }
-        case DECOMPRESSFILE:
-        case DECOMPRESSDIRECTORY:
+        case DECOMPRESS:
         {
-            auto names = printInteraction(DECOMPRESSFILE);
+            auto names = printInteraction(DECOMPRESS);
             int passLength = passwordCorrect(names[0]);
             clock_t start = clock();
             cout << "解压缩中,请等待" << endl;
@@ -69,36 +63,53 @@ void Execution(int choice) {
 string* printInteraction(int choice) {
     static string name[2];
     switch(choice) {
-        case COMPRESSFILE:{
+        case COMPRESS:{
             cout << "请输入你要压缩的文件路径(包含后缀)" << endl;
-            getline(cin,name[0]);
-            cout << "请输入你要输出的文件文件名(不用加后缀)" << endl;
-            getline(cin,name[1]);
-            name[1] += ".huffman"; 
+            while(1){
+                getline(cin,name[0]);
+                fs::path path(name[0]);
+                if (!fs::exists(path)) {
+                        cout << "无效的路径,请重新输入" << endl;
+                        continue;
+                    }
+                cout << "请输入你要输出的文件文件名" << endl;
+                getline(cin,name[1]);
+                name[1] += ".huf"; 
+                break;
+            }
             break;
         }
-        case COMPRESSDIRECTORY:{
-            cout << "请输入你要压缩的文件夹路径" << endl;
-            getline(cin,name[0]);
-            cout << "请输入你要输出的文件夹名(不用加后缀)" << endl;
-            getline(cin,name[1]);
-            name[1] += ".huffman"; 
-            break;
-        }
-        case DECOMPRESSFILE:{
+        case DECOMPRESS:{
             cout << "请输入你要解压缩的文件路径(包含后缀)" << endl;
-            getline(cin,name[0]);
+            while(1){
+                getline(cin,name[0]);
+                fs::path path(name[0]);
+                
+                if (!fs::exists(path)) {
+                    cout << "无效的路径,请重新输入" << endl;
+                    continue;
+                }else{
+                    if(path.extension().string() == ".huf"){
+                        break;
+                    }else{
+                        cout << "文件不是经哈夫曼压缩的,请重新输入" << endl;
+                        continue;
+                    }
+                }
+                
+            }
+            
             // cout << "请输入你要输出的文件文件名" << endl;
             // getline(cin,name[1]);
             break;
         }
-        case DECOMPRESSDIRECTORY:{
-            cout << "请输入你要解压缩的文件路径(包含后缀)" << endl;
-            getline(cin,name[0]);
-            // cout << "请输入你要输出的文件夹名" << endl;
-            // getline(cin,name[1]);
-            break;
-        }
+        // case DECOMPRESSDIRECTORY:{
+        //     cout << "请输入你要解压缩的文件路径(包含后缀)" << endl;
+        //     getline(cin,name[0]);
+        //     // cout << "请输入你要输出的文件夹名" << endl;
+        //     // getline(cin,name[1]);
+        //     break;
+        // }
     }
     return name;
 }
