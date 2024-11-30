@@ -51,7 +51,7 @@ class FileIO{
                                                         int alphaVarity,streampos currentPos);
         // 解压缩单个文件
         streampos decompressFile(const string& filename,string& outputFileName,
-                                                    long long filesize,streampos startIndex,int type);
+                                        long long filesize,streampos startIndex);
 
         
     private:

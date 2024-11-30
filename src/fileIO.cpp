@@ -50,19 +50,6 @@ void FileIO::handleEmptyFile(const string &filename, const string &outputFileNam
     fileHead filehead;
     filehead.originBytes = 0;
     filehead.alphaVarity = 0;
-    // // 只存结尾文件,在这里不知道可不可以
-    // string newName;
-    // if(prefix == ""){
-    //     newName = fs::path(filename).filename().string();
-    // }else{
-    //     newName = filename.substr(prefix.length() + 1); 
-    // }
-    // filehead.nameLength = newName.length();
-    // filehead.name = new char[filehead.nameLength + 1];
-    // strncpy(filehead.name, newName.c_str(), filehead.nameLength);
-    // filehead.name[filehead.nameLength] = '\0';
-
-    // writeFileHead(outputFile, filehead);
     outputFile.write((char*)(&filehead),sizeof(filehead));
 }
 
@@ -117,7 +104,7 @@ void FileIO::compressFile(const string &filename, const string &outputFileName, 
     fs::path entry(filename);
     // 写入压缩文件
     ifstream inputFile(filename, ios::in | ios::binary);
-    // 以追加模式写入，不知道会不会有影响
+    // 追加写入
     ofstream outputFile(outputFileName, ios::out | ios::binary | ios::app);
     // 对于空文件，直接写入0
     if (std::filesystem::file_size(entry) == 0)
@@ -199,25 +186,6 @@ pair<fileHead,streampos> FileIO::readFileHead(const string &filename,const strea
     fileHead filehead;
     ifstream inputFile(filename, ios::in | ios::binary);
     inputFile.seekg(startIndex);
-    // // 计算总大小并分配缓冲区
-    // size_t totalSize = sizeof(filehead.alphaVarity) + sizeof(filehead.originBytes) + sizeof(filehead.nameLength) + (filehead.nameLength + 1);
-    // char* buffer = new char[totalSize];
-    
-    // // 一次性读取所有数据
-    // inputFile.read(buffer, totalSize);
-    
-    // // 解析缓冲区数据
-    // char* ptr = buffer;
-    // memcpy(&filehead.alphaVarity, ptr, sizeof(filehead.alphaVarity));
-    // ptr += sizeof(filehead.alphaVarity);
-    // memcpy(&filehead.originBytes, ptr, sizeof(filehead.originBytes));
-    // ptr += sizeof(filehead.originBytes);
-    // memcpy(&filehead.nameLength, ptr, sizeof(filehead.nameLength));
-    // ptr += sizeof(filehead.nameLength);
-    // filehead.name = new char[filehead.nameLength + 1];
-    // memcpy(filehead.name, ptr, filehead.nameLength + 1);
-    // // 释放缓冲区
-    // delete[] buffer;
     inputFile.read((char*)(&filehead),sizeof(filehead));
         
     // 记录当前文件指针位置
@@ -250,31 +218,13 @@ pair<map<char, long long>,streampos> FileIO::readCompressTFileFreq(const string 
 }
 // 解压缩文件
 streampos FileIO::decompressFile(const string &filename,string &outputFileName, 
-                                             long long filesize,streampos startIndex, int type)
+                                        long long filesize,streampos startIndex)
 {
-    if(type == FileType::FILE_TYPE){// 是文件
-        // 读取文件名,将输出路径更新
-        ifstream input(filename,ios::in | ios::binary);
-        input.seekg(startIndex);
-        int pathLength;
-        input.read((char*)(&pathLength),sizeof(pathLength));
-        string pathBuffer(pathLength, '\0');
-        input.read(&pathBuffer[0], pathLength);
-        outputFileName = pathBuffer;
-        startIndex = input.tellg();
-        input.close();
-    }
     // 读取头文件信息
     auto [filehead,currentPos] = readFileHead(filename,startIndex);
 
-    // if(type == FileType::FILE_TYPE){ // 是文件
-    //     // 恢复文件名,将输出路径更新
-    //     string outputFilename(filehead.name, filehead.nameLength);
-    //     outputFileName = outputFilename;
-    // }
-    
     if(filehead.originBytes == 0){
-        ofstream outputFile(outputFileName, ios::out | ios::binary |ios::app);
+        ofstream outputFile(outputFileName, ios::out | ios::binary);
         outputFile.close();
         return currentPos;
     }
@@ -289,8 +239,9 @@ streampos FileIO::decompressFile(const string &filename,string &outputFileName,
     HuffmanNode *current = root;
 
     ifstream inputFile(filename, ios::in | ios::binary);
-    // 这个可能也要处理
-    ofstream outputFile(outputFileName, ios::out | ios::binary |ios::app);
+    // 始终是覆盖写入
+    ofstream outputFile(outputFileName, ios::out | ios::binary);  
+
     // 定位到存储文件的位置
     inputFile.seekg(newPos);
     // 缓冲区

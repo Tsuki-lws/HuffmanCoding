@@ -72,9 +72,18 @@ string* printInteraction(int choice) {
                         cout << "无效的路径,请重新输入" << endl;
                         continue;
                     }
-                cout << "请输入你要输出的文件文件名" << endl;
+                break;
+            }
+            cout << "请输入你的目标文件名" << endl;
+            while(1){
                 getline(cin,name[1]);
                 name[1] += ".huf"; 
+                bool cover = true; // 默认为覆盖
+                cover = checkCompressOutputPath(name[1]);
+                if(!cover){
+                    cout << "请重新输入目标文件名" <<endl;
+                    continue;
+                }
                 break;
             }
             break;
@@ -96,20 +105,10 @@ string* printInteraction(int choice) {
                         continue;
                     }
                 }
-                
             }
-            
-            // cout << "请输入你要输出的文件文件名" << endl;
-            // getline(cin,name[1]);
             break;
         }
-        // case DECOMPRESSDIRECTORY:{
-        //     cout << "请输入你要解压缩的文件路径(包含后缀)" << endl;
-        //     getline(cin,name[0]);
-        //     // cout << "请输入你要输出的文件夹名" << endl;
-        //     // getline(cin,name[1]);
-        //     break;
-        // }
+        
     }
     return name;
 }
@@ -139,22 +138,17 @@ long long* getCompressDirSize(const string& filename, int filenameSize){
 }
 // 是否加密
 string encrypt(){
-    cout << "您是否要选择加密\n1.y\n2.n" << endl;
+    cout << "您是否要选择加密\n1.yes\n2.no" << endl;
     string password = "";
     while(1){
         string s;
         getline(cin,s);
-        if(s.length() == 1){
-            if(s == "y"){
-                cout << "请输入密码" << endl;
-                getline(cin,password);
-                return password;
-            }else if(s == "n"){
-                return password;
-            }else{
-                cout << "格式不正确,请重新输入" << endl;
-                continue;
-            }
+        if(s == "1"){
+            cout << "请输入密码" << endl;
+            getline(cin,password);
+            return password;
+        }else if(s == "2"){
+            return password;
         }else{
             cout << "格式不正确,请重新输入" << endl;
             continue;
@@ -191,4 +185,42 @@ int passwordCorrect(const string& filename) {
             }
         }
     }
+}
+
+bool checkOutputPath(const string &filepath){
+    if(fs::exists(filepath)){
+        cout << filepath << "已存在,是否要覆盖\n1.覆盖\n2.跳过" << endl; 
+        while(1){
+            string line;
+            getline(cin,line);
+            if(line == "1"){ // 覆盖
+                return true;
+            }else if(line == "2"){ // 跳过
+                cout << "已跳过" << endl;
+                return false;
+            }else{
+                cout << "无效输入,请重新输入" << endl;
+                continue;
+            }
+        }
+    }
+    return true;
+}
+bool checkCompressOutputPath(const string &filepath){
+    if(fs::exists(filepath)){
+        cout << filepath <<"已存在,是否要覆盖\n1.覆盖\n2.选择其他路径" << endl; 
+        while(1){
+            string line;
+            getline(cin,line);
+            if(line == "1"){ // 覆盖
+                return true;
+            }else if(line == "2"){ // 选择其他路径
+                return false;
+            }else{
+                cout << "无效输入,请重新输入" << endl;
+                continue;
+            }
+        }
+    }
+    return true;
 }

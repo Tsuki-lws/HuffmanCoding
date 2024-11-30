@@ -162,9 +162,25 @@ void Features::decompress(const string& filename, string& outputFileName, int pa
 }
 // 解压缩文件
 void Features::decompressFile(const string &filename, string &outputFileName, streampos currentPos)
-{
+{   
+    // 读取文件名,将输出路径更新
+    ifstream input(filename,ios::in | ios::binary);
+    input.seekg(currentPos);
+    int pathLength;
+    input.read((char*)(&pathLength),sizeof(pathLength));
+    string pathBuffer(pathLength, '\0');
+    input.read(&pathBuffer[0], pathLength);
+    outputFileName = pathBuffer;
+    currentPos = input.tellg();
+    input.close();
+
+    bool cover = true; // 默认为覆盖
+    cover = checkOutputPath(outputFileName);
+    if(!cover){ // 如果false,跳过
+        return;
+    }
     FileIO fileIO;
-    fileIO.decompressFile(filename, outputFileName, fs::file_size(filename), currentPos, FileType::FILE_TYPE);
+    fileIO.decompressFile(filename, outputFileName, fs::file_size(filename), currentPos);
 }
 // 解压缩文件夹
 void Features::decompressDir(const string &filename, streampos currentPos)
@@ -208,7 +224,13 @@ void Features::decompressDir(const string &filename, streampos currentPos)
     // 对各个文件进行解压
     for (int i = 0; i < filenameSize; i++)
     {
+        bool cover = true; // 默认为覆盖
+        cover = checkOutputPath(filepath[i]);
+        if(!cover) {
+            startIndex = startIndex + filesize[i];
+            continue;
+        }
         FileIO fileIO;
-        startIndex = fileIO.decompressFile(filename, filepath[i], filesize[i], startIndex,FileType::DIRECTORY);
+        startIndex = fileIO.decompressFile(filename, filepath[i], filesize[i], startIndex);
     }
 }

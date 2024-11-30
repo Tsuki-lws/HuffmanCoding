@@ -35,4 +35,8 @@ string encrypt();
 string decode();
 // 判断密码是否正确
 int passwordCorrect(const string& filename);
+// 检查输出路径是否存在,解压缩
+bool checkOutputPath(const string &filepath);
+// 检查输出路径是否存在,压缩
+bool checkCompressOutputPath(const string &filepath);
 #endif
