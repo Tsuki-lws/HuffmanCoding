@@ -221,7 +221,7 @@ pair<map<char, long long>,streampos> FileIO::readCompressTFileFreq(const string 
 }
 // 解压缩文件
 streampos FileIO::decompressFile(const string &filename,string &outputFileName, 
-                                        long long filesize,streampos startIndex)
+                                        long long filesize,const streampos &startIndex)
 {
     // 读取头文件信息
     auto [filehead,currentPos] = readFileHead(filename,startIndex);
@@ -318,5 +318,6 @@ finish: ;
     streampos nowPos = inputFile.tellg();
     // 关闭文件
     inputFile.close();
+    outputFile.close();
     return nowPos;
 }

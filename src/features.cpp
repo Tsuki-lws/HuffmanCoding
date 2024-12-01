@@ -111,6 +111,7 @@ void Features::compressDirectory(const string &dirPath, const string &outputFile
 
     // 记录每个压缩文件的大小
     long long filesize[filenameSize];
+    
     // 挨个压缩文件
     int i = 0;
     for (const auto &file : filename)
@@ -176,6 +177,11 @@ void Features::decompressFile(const string &filename, string &outputFileName, st
     FileIO fileIO;
     fileIO.decompressFile(filename, outputFileName, fs::file_size(filename), currentPos);
 }
+// 单个处理任务
+void Features::decompressFileTask(const string& filename, string& filepath, int filesize, int startIndex) {
+    FileIO fileIO;
+    fileIO.decompressFile(filename, filepath, filesize, startIndex);  
+}
 // 解压缩文件夹
 void Features::decompressDir(const string &filename, streampos currentPos)
 {
@@ -211,20 +217,74 @@ void Features::decompressDir(const string &filename, streampos currentPos)
         inputFile.read(&path[0], fileLength);
         filepath.push_back(path);
     }
-    streampos startIndex = inputFile.tellg();
+
+    streampos startIndex[filenameSize];
+    startIndex[0] = inputFile.tellg();
     inputFile.close();
     // 获得每个文件的压缩文件的大小
     long long *filesize = getCompressDirSize(filename, filenameSize);
-    // 对各个文件进行解压
-    for (int i = 0; i < filenameSize; i++)
-    {
-        bool cover = true; // 默认为覆盖
-        cover = checkOutputPath(filepath[i]);
-        if(!cover) {
-            startIndex = startIndex + filesize[i];
-            continue;
-        }
-        FileIO fileIO;
-        startIndex = fileIO.decompressFile(filename, filepath[i], filesize[i], startIndex);
+    // 获得每个文件前面的文件压缩大小
+    for (int i = 1; i < filenameSize; i++) {
+        startIndex[i] =  startIndex[i - 1] + filesize[i - 1];
     }
+
+    bool cover[filenameSize] = {true};
+
+    // 询问是否替代，还是挨个保存
+    for(int i = 0; i < filenameSize; i++) {
+        cover[i] = checkOutputPath(filepath[i]);
+    }
+
+    // // 获取 CPU 核心数（作为线程数的上限）
+    // unsigned int numThreads = thread::hardware_concurrency();
+    // numThreads = min(numThreads, static_cast<unsigned int>(filenameSize));  // 不超过文件数
+    //   numThreads = 4;
+    // queue<thread> threadPool;
+    // // 对各个文件进行解压
+    // for (int i = 0; i <  min(filenameSize,5000); i++) {
+    //     if (!cover[i]) {
+    //         continue;
+    //     }
+
+    // // 如果当前线程数达到上限，等待最早完成的线程
+    // while (threadPool.size() >= numThreads) {
+    //     // 等待最早完成的线程并移除
+    //     if (threadPool.front().joinable()) {
+    //         threadPool.front().join();  // 等待线程完成
+    //     }
+    //     threadPool.pop();
+    // }
+
+    //      // 创建并推送新线程到线程池
+    // threadPool.push(thread([this, &filename, &filepath, &filesize, &startIndex, i] {
+    //     // 调用解压函数
+    //     decompressFileTask(filename, filepath[i], filesize[i], startIndex[i]);
+    // }));
+    // }
+
+    // // 等待所有线程完成
+    // while (!threadPool.empty()) {
+    //     if (threadPool.front().joinable()) {
+    //         threadPool.front().join();  // 确保每个线程都被正确 join
+    //     }
+    //     threadPool.pop();
+    // }
+    // if(filenameSize > 5000){
+        for(int i = 0; i < filenameSize; i++){
+            if (!cover[i]) {
+                continue;
+            }
+            FileIO fileIO;
+            fileIO.decompressFile(filename, filepath[i], filesize[i], startIndex[i]);
+        }
+    // }
+    
+//    for (int i = 0; i < filenameSize; i++)
+//     {
+//         FileIO fileIO;
+//         startIndex = fileIO.decompressFile(filename, filepath[i], filesize[i], startIndex);
+//     }
+
+        // FileIO fileIO;
+        // fileIO.decompressFile(filename, filepath[5206], filesize[5206], startIndex[5206]);
 }

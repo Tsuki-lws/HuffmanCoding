@@ -5,8 +5,10 @@
 #include <string>
 #include<filesystem>
 #include<vector>
-
-
+#include <thread>
+#include <mutex>
+#include <future>
+#include <algorithm>
 namespace fs = std::filesystem;
 using namespace std;
 
@@ -33,7 +35,9 @@ class Features {
 
         // 解压缩文件夹
         void decompressDir(const string& filename, streampos currentPos);
-
+        
+        // 用于多线程
+        void decompressFileTask(const string& filename, string& filepath, int filesize, int startIndex);
 };
 
 #endif
