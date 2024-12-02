@@ -8,8 +8,9 @@
 #include <string>
 #include <vector>
 #include "HuffmanTree.h"
-
+#include <thread>
 #define BUFFER_SIZE (512*1024)
+#define FILE_SIZE (10*1024*1024)
 using namespace std;
 
 enum FileType {

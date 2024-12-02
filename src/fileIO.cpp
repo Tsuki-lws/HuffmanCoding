@@ -16,8 +16,9 @@ map<char, long long> FileIO::makeCharFreq(const string &filename)
     long long size = fs::file_size(filename);
     int times = size / BUFFER_SIZE;
     int others = size % BUFFER_SIZE;
-    
-    for(int i = 0; i < times; i++) {
+
+    for (int i = 0; i < times; i++)
+    {
         file.read(buffer, BUFFER_SIZE * sizeof(char));
         // 更新频率数组
         for (int i = 0; i < BUFFER_SIZE; i++)
@@ -36,9 +37,11 @@ map<char, long long> FileIO::makeCharFreq(const string &filename)
     file.close();
     // 将数组中的频率转换为 map 返回
     map<char, long long> freqTable;
-    for (int i = 0; i < 256; ++i) {
-        if (freqArray[i] > 0) {
-            freqTable[(char)(i) - 128] = freqArray[i];
+    for (int i = 0; i < 256; ++i)
+    {
+        if (freqArray[i] > 0)
+        {
+            freqTable[(char)(i)-128] = freqArray[i];
         }
     }
     return freqTable;
@@ -46,16 +49,18 @@ map<char, long long> FileIO::makeCharFreq(const string &filename)
 
 // 处理空文件
 void FileIO::handleEmptyFile(const string &filename, const string &outputFileName,
-                                 const string &prefix, ifstream &inputFile,ofstream &outputFile) {
+                             const string &prefix, ifstream &inputFile, ofstream &outputFile)
+{
     fileHead filehead;
     filehead.originBytes = 0;
     filehead.alphaVarity = 0;
-    outputFile.write((char*)(&filehead),sizeof(filehead));
+    outputFile.write((char *)(&filehead), sizeof(filehead));
 }
 
 // 处理非空文件非主内容信息
-string* FileIO::handleNonEmptyFileHead(const string &filename, 
-                    const string &outputFileName, const string &prefix, ifstream &inputFile,ofstream &outputFile) {
+string *FileIO::handleNonEmptyFileHead(const string &filename,
+                                       const string &outputFileName, const string &prefix, ifstream &inputFile, ofstream &outputFile)
+{
     // 读取文件并构建字符频率表，在后面可以改到前一层，把这4行作为参数传进来
     // 这样应该可以解决解压缩文件代码中的错误（好像不太行，这是独立的）
     // clock_t start = clock();
@@ -77,17 +82,17 @@ string* FileIO::handleNonEmptyFileHead(const string &filename,
     // inputFile.seekg(0, ios::beg);
     filehead.alphaVarity = charCode.size();
 
-    outputFile.write((char*)(&filehead),sizeof(filehead));
+    outputFile.write((char *)(&filehead), sizeof(filehead));
 
-    
     // clock_t a1 = clock();
     // 将charCode查找优化到O(1)
     static string charCodeArray[256];
-    for (const auto& pair : charCode) {
+    for (const auto &pair : charCode)
+    {
         // charCodeArray[(int)pair.first + 128] = pair.second;
         charCodeArray[(unsigned char)pair.first] = pair.second;
     }
-    
+
     // 写入字符频度信息
     for (auto &entry : freqTable)
     {
@@ -99,6 +104,39 @@ string* FileIO::handleNonEmptyFileHead(const string &filename,
     return charCodeArray;
 }
 
+vector<char> compressBlock(const char *inputBuffer, int size, const string *charCodeArray,int j)
+{
+    vector<char> outputBuffer;
+    unsigned char bits = 0;
+    int bitcount = 0;
+    for (int i = 0; i < size; i++)
+    {
+        string currentChar = charCodeArray[(unsigned char)inputBuffer[i]];
+        int length = currentChar.length();
+        for (int j = 0; j < length; j++)
+        {
+            bits <<= 1;
+            bits |= (currentChar[j] == '1');
+            bitcount++;
+            if (bitcount == 8)
+            {
+                outputBuffer.push_back(bits);
+                bits = 0;
+                bitcount = 0;
+            }
+        }
+    }
+    if (bitcount > 0)
+    {
+        for (int j = bitcount; j < 8; j++)
+        {
+            bits <<= 1;
+            bits |= 0;
+        }
+        outputBuffer.push_back(bits);
+    }
+    return outputBuffer;
+}
 // 压缩单个文件
 void FileIO::compressFile(const string &filename, const string &outputFileName, const string &prefix)
 {
@@ -110,24 +148,50 @@ void FileIO::compressFile(const string &filename, const string &outputFileName, 
     // 对于空文件，直接写入0
     if (std::filesystem::file_size(entry) == 0)
     {
-        handleEmptyFile(filename,outputFileName,prefix, inputFile, outputFile);
+        handleEmptyFile(filename, outputFileName, prefix, inputFile, outputFile);
     }
     else
     {
-        string *charCodeArray = handleNonEmptyFileHead(filename,outputFileName,prefix,inputFile, outputFile);
-        
+        string *charCodeArray = handleNonEmptyFileHead(filename, outputFileName, prefix, inputFile, outputFile);
+
         // 写入主内容
-        char inputBuffer[BUFFER_SIZE];
-        char outputBuffer[BUFFER_SIZE];
-        int outputIndex = 0;
-        unsigned char bits = 0;
-        int bitcount = 0;
         long long filesize = fs::file_size(filename);
-        int times = filesize / BUFFER_SIZE;
-        for(int i = 0; i < times; i++){
-            inputFile.read(inputBuffer, BUFFER_SIZE * sizeof(char));
-            for(size_t i = 0; i < BUFFER_SIZE; i++){
-                // string currentChar = charCodeArray[(int)inputBuffer[i] + 128];
+        if(filesize < FILE_SIZE){
+            char check = '1';
+            outputFile.write(&check, sizeof(check));
+            // 写入主内容
+            char inputBuffer[BUFFER_SIZE];
+            char outputBuffer[BUFFER_SIZE];
+            int outputIndex = 0;
+            unsigned char bits = 0;
+            int bitcount = 0;
+            long long filesize = fs::file_size(filename);
+            int times = filesize / BUFFER_SIZE;
+            for(int i = 0; i < times; i++){
+                inputFile.read(inputBuffer, BUFFER_SIZE * sizeof(char));
+                for(size_t i = 0; i < BUFFER_SIZE; i++){
+                    string currentChar = charCodeArray[(unsigned char)inputBuffer[i]];
+                    int length = currentChar.length();
+                    for(size_t j = 0; j < length; j++){
+                        bits <<= 1;
+                        bits |= (currentChar[j] == '1'); 
+                        bitcount++;
+                        if(bitcount == 8){
+                            outputBuffer[outputIndex++] = bits;
+                            bits = 0;
+                            bitcount = 0;
+                        }
+                        if(outputIndex == BUFFER_SIZE){
+                            outputFile.write(outputBuffer, outputIndex);
+                            outputIndex = 0;
+                        }
+                    }
+                }
+            }
+            // 对于不满BUFFER_SIZE的部分处理
+            long long others = filesize % BUFFER_SIZE;
+            inputFile.read(inputBuffer, others * sizeof(char));
+            for(size_t i = 0; i < others; i++){
                 string currentChar = charCodeArray[(unsigned char)inputBuffer[i]];
                 int length = currentChar.length();
                 for(size_t j = 0; j < length; j++){
@@ -145,62 +209,83 @@ void FileIO::compressFile(const string &filename, const string &outputFileName, 
                     }
                 }
             }
-        }
-        // 对于不满BUFFER_SIZE的部分处理
-        long long others = filesize % BUFFER_SIZE;
-        inputFile.read(inputBuffer, others * sizeof(char));
-        for(size_t i = 0; i < others; i++){
-            // string currentChar = charCodeArray[(int)inputBuffer[i] + 128];
-            string currentChar = charCodeArray[(unsigned char)inputBuffer[i]];
-            int length = currentChar.length();
-            for(size_t j = 0; j < length; j++){
-                bits <<= 1;
-                bits |= (currentChar[j] == '1'); 
-                bitcount++;
-                if(bitcount == 8){
-                    outputBuffer[outputIndex++] = bits;
-                    bits = 0;
-                    bitcount = 0;
+            if (!!bitcount)
+            {
+                // 补齐八位
+                for(int i = bitcount; i < 8;i++){
+                    bits <<= 1;
+                    bits |= 0;
                 }
-                if(outputIndex == BUFFER_SIZE){
-                    outputFile.write(outputBuffer, outputIndex);
-                    outputIndex = 0;
+                outputBuffer[outputIndex++] = bits;
+            }
+            outputFile.write(outputBuffer, outputIndex);
+        }else{
+            char check = '2';
+            outputFile.write(&check, sizeof(check));
+            int totalBlocks = (filesize + BUFFER_SIZE - 1) / BUFFER_SIZE;
+            int maxThreads = min((int)(thread::hardware_concurrency()), totalBlocks);
+            int times = (totalBlocks + maxThreads - 1) / maxThreads;
+            int lastBlocksSize = filesize % BUFFER_SIZE;
+            // 将总块数写入文件
+            outputFile.write((char *)(&totalBlocks), sizeof(totalBlocks));
+            // 将最后一块的大小写入文件
+            outputFile.write((char *)(&lastBlocksSize),sizeof(lastBlocksSize));
+            for (int i = 0; i < times; i++)
+            {
+                vector<vector<char>> inputBuffer(maxThreads, vector<char>(BUFFER_SIZE));
+                vector<vector<char>> outputBuffer(maxThreads);
+                int currentThreads = min(maxThreads, totalBlocks - i * maxThreads);
+                vector<thread> threads;
+                for (int j = 0; j < currentThreads; j++)
+                {
+                    int readSize = (i == times - 1 && j == currentThreads - 1) ? lastBlocksSize : BUFFER_SIZE;
+                    inputFile.read(inputBuffer[j].data(), readSize);
+                    threads.emplace_back([&, j, readSize]()
+                    {
+                        outputBuffer[j] = compressBlock(inputBuffer[j].data(), readSize, charCodeArray,j);
+                    });
+                }
+                for (auto &t : threads)
+                {
+                    t.join();
+                }
+                for (int j = 0; j < currentThreads; j++)
+                {
+                    // 先写入每个outputBuffer的长度
+                    int bufferSize = outputBuffer[j].size();
+                    outputFile.write(reinterpret_cast<char*>(&bufferSize), sizeof(bufferSize));
+                    // 再写入数据
+                    outputFile.write(outputBuffer[j].data(), bufferSize);
+                }
+                // 清理缓冲数据
+                for (int j = 0; j < currentThreads; j++) {
+                    outputBuffer[j].clear();
                 }
             }
         }
-        if (!!bitcount)
-        {
-            // 补齐八位
-            for(int i = bitcount; i < 8;i++){
-                bits <<= 1;
-                bits |= 0;
-            }
-            outputBuffer[outputIndex++] = bits;
-        }
-        outputFile.write(outputBuffer, outputIndex);
         inputFile.close();
         outputFile.close();
     }
 }
 
 // 读取压缩文件头信息
-pair<fileHead,streampos> FileIO::readFileHead(const string &filename,const streampos &startIndex)
+pair<fileHead, streampos> FileIO::readFileHead(const string &filename, const streampos &startIndex)
 {
     fileHead filehead;
     ifstream inputFile(filename, ios::in | ios::binary);
     inputFile.seekg(startIndex);
-    inputFile.read((char*)(&filehead),sizeof(filehead));
-        
+    inputFile.read((char *)(&filehead), sizeof(filehead));
+
     // 记录当前文件指针位置
     streampos currentPos = inputFile.tellg();
     inputFile.close();
-    
-    return make_pair(filehead,currentPos);
+
+    return make_pair(filehead, currentPos);
 }
 
 // 读取压缩文件字符频度信息,构建哈夫曼树
-pair<map<char, long long>,streampos> FileIO::readCompressTFileFreq(const string &filename,
-                                                        int alphaVarity,streampos currentPos)
+pair<map<char, long long>, streampos> FileIO::readCompressTFileFreq(const string &filename,
+                                                                    int alphaVarity, streampos currentPos)
 {
     ifstream inputFile(filename, ios::in | ios::binary);
     inputFile.seekg(currentPos);
@@ -212,53 +297,116 @@ pair<map<char, long long>,streampos> FileIO::readCompressTFileFreq(const string 
         inputFile.read(reinterpret_cast<char *>(&af), sizeof(af));
         freqTable[af.alpha] = af.freq;
     }
-    
+
     // 记录当前文件指针位置
     streampos newPos = inputFile.tellg();
     inputFile.close();
-    
-    return make_pair(freqTable,newPos);
+
+    return make_pair(freqTable, newPos);
+}
+
+// 解压缩块
+vector<char> decompressBlock(const char* inputBuffer, int size,HuffmanNode *current)
+{
+    vector<char> outputBuffer;
+    HuffmanNode *root = current;
+    for (size_t i = 0; i < size; i++)
+    {
+        char byte = inputBuffer[i];
+        for (int j = 0; j < 8; j++)
+        {
+            if (!(current->left == nullptr && current->right == nullptr))
+            {
+                bool bit = byte & (1 << (7 - j));
+                current = bit ? current->right : current->left;
+            }
+            if (current->left == nullptr && current->right == nullptr)
+            {
+                outputBuffer.push_back(current->data);
+                current = root;
+            }
+        }
+    }
+    current = root;
+    return outputBuffer;
 }
 // 解压缩文件
-streampos FileIO::decompressFile(const string &filename,string &outputFileName, 
-                                        long long filesize,const streampos &startIndex)
+streampos FileIO::decompressFile(const string &filename, string &outputFileName,
+                                 long long filesize, const streampos &startIndex)
 {
     // 读取头文件信息
-    auto [filehead,currentPos] = readFileHead(filename,startIndex);
+    auto [filehead, currentPos] = readFileHead(filename, startIndex);
 
-    if(filehead.originBytes == 0){
+    if (filehead.originBytes == 0)
+    {
         ofstream outputFile(outputFileName, ios::out | ios::binary);
         outputFile.close();
         return currentPos;
     }
     // 读取字符频度信息
-    auto [freqTable, newPos] = readCompressTFileFreq(filename, filehead.alphaVarity,currentPos);
-    
+    auto [freqTable, newPos] = readCompressTFileFreq(filename, filehead.alphaVarity, currentPos);
+
     // 构建哈夫曼树
     HuffmanTree tree(freqTable);
     tree.createHuffmanTree();
     // 返回子节点
     HuffmanNode *root = tree.getHuffmanRoot();
-    HuffmanNode *current = root;
 
     ifstream inputFile(filename, ios::in | ios::binary);
     // 始终是覆盖写入
-    ofstream outputFile(outputFileName, ios::out | ios::binary);  
+    ofstream outputFile(outputFileName, ios::out | ios::binary);
 
     // 定位到存储文件的位置
     inputFile.seekg(newPos);
-    // 缓冲区
-    char inputBuffer[BUFFER_SIZE];
-    char outputBuffer[BUFFER_SIZE];
-    int outputIndex = 0;
-    int writeByte = 0;
-    // 主题内容的字节数
-    long long mainSize = filesize - (newPos - startIndex);
-    int times = mainSize / BUFFER_SIZE;
-    long long others = mainSize % BUFFER_SIZE;
-    for(int i = 0; i < times; i++) {
-        inputFile.read(inputBuffer, BUFFER_SIZE * sizeof(char));
-        for (size_t i = 0; i < BUFFER_SIZE; i++)
+
+    char check;
+    inputFile.read(&check,sizeof(check));
+    if(check == '1'){
+        HuffmanNode *current = root;
+        // 缓冲区
+        char inputBuffer[BUFFER_SIZE];
+        char outputBuffer[BUFFER_SIZE];
+        int outputIndex = 0;
+        int writeByte = 0;
+        // 主题内容的字节数
+        long long mainSize = filesize - (newPos - startIndex);
+        int times = mainSize / BUFFER_SIZE;
+        long long others = mainSize % BUFFER_SIZE;
+        for (int i = 0; i < times; i++)
+        {
+            inputFile.read(inputBuffer, BUFFER_SIZE * sizeof(char));
+            for (size_t i = 0; i < BUFFER_SIZE; i++)
+            {
+                char byte = inputBuffer[i];
+                for (int j = 0; j < 8; j++)
+                {
+                    if (!tree.isLeaf(current))
+                    {
+                        bool bit = byte & (1 << (7 - j));
+                        current = bit ? current->right : current->left;
+                    }
+                    if (tree.isLeaf(current))
+                    {
+                        outputBuffer[outputIndex++] = current->data;
+                        writeByte++;
+                        current = root;
+                        if (outputIndex == BUFFER_SIZE)
+                        {
+                            outputFile.write(outputBuffer, outputIndex);
+                            outputIndex = 0;
+                        }
+                        // 处理多余的字符
+                        if (writeByte >= filehead.originBytes)
+                        {
+                            goto finish;
+                        }
+                    }
+                }
+            }
+        }
+        // 对于不满BUFFER_SIZE的部分
+        inputFile.read(inputBuffer, others * sizeof(char));
+        for (size_t i = 0; i < others; i++)
         {
             char byte = inputBuffer[i];
             for (int j = 0; j < 8; j++)
@@ -268,52 +416,83 @@ streampos FileIO::decompressFile(const string &filename,string &outputFileName,
                     bool bit = byte & (1 << (7 - j));
                     current = bit ? current->right : current->left;
                 }
-                if(tree.isLeaf(current)){
+                if (tree.isLeaf(current))
+                {
                     outputBuffer[outputIndex++] = current->data;
                     writeByte++;
                     current = root;
-                    if(outputIndex == BUFFER_SIZE ){
+                    if (outputIndex == BUFFER_SIZE)
+                    {
                         outputFile.write(outputBuffer, outputIndex);
                         outputIndex = 0;
                     }
                     // 处理多余的字符
-                    if(writeByte >= filehead.originBytes){
+                    if (writeByte >= filehead.originBytes)
+                    {
                         goto finish;
                     }
                 }
             }
         }
-    }
-    // 对于不满BUFFER_SIZE的部分
-    inputFile.read(inputBuffer, others * sizeof(char));
-    for (size_t i = 0; i < others; i++)
-    {
-        char byte = inputBuffer[i];
-        for (int j = 0; j < 8; j++)
+    finish:;
+        if (outputIndex > 0)
         {
-            if (!tree.isLeaf(current))
-            {
-                bool bit = byte & (1 << (7 - j));
-                current = bit ? current->right : current->left;
-            }
-            if(tree.isLeaf(current)){
-                outputBuffer[outputIndex++] = current->data;
-                writeByte++;
-                current = root;
-                if(outputIndex == BUFFER_SIZE ){
-                    outputFile.write(outputBuffer, outputIndex);
-                    outputIndex = 0;
-                }
-                // 处理多余的字符
-                if(writeByte >= filehead.originBytes){
-                    goto finish;
-                }
-            }
+            outputFile.write(outputBuffer, outputIndex);
         }
     }
-finish: ;
-    if(outputIndex > 0){
-        outputFile.write(outputBuffer, outputIndex);
+    else if(check == '2'){
+        // 读取总块数
+        int totalBlocks;
+        inputFile.read((char *)(&totalBlocks), sizeof(totalBlocks));
+        // 读取最后一块字节数
+        int lastBlockSize;
+        inputFile.read((char*)(&lastBlockSize),sizeof(lastBlockSize));
+
+        int maxThreads = min((int)(thread::hardware_concurrency()), totalBlocks);
+        int times = (totalBlocks + maxThreads - 1) / maxThreads;
+        int lastTime = times - 1;
+        for(int i = 0; i < times; i++){
+            vector<vector<char>> outputBuffer(maxThreads);
+            int currentThreads = min(maxThreads, totalBlocks - i * maxThreads);
+            vector<vector<char>> inputBuffer(currentThreads);
+            vector<thread> threads;
+            for (int j = 0; j < currentThreads; j++)
+            {
+                int readSize = 0;
+                inputFile.read((char*)&readSize,sizeof(readSize));
+                inputBuffer[j].resize(readSize);
+                inputFile.read(inputBuffer[j].data(),readSize);
+                HuffmanNode *current = root;
+                threads.emplace_back([&, j, readSize]()
+                {
+                    outputBuffer[j] = decompressBlock(inputBuffer[j].data(), readSize, current);
+                });
+            }
+            for (auto &t : threads)
+            {
+                t.join();
+            }
+            if(i == lastTime){
+                for (int j = 0; j < currentThreads - 1; j++)
+                {
+                    // 直接写入数据
+                    outputFile.write(outputBuffer[j].data(), BUFFER_SIZE);
+                }
+                // 最后一块特殊处理
+                outputFile.write(outputBuffer[currentThreads - 1].data(), lastBlockSize);
+            }else{
+                for (int j = 0; j < currentThreads; j++)
+                {
+                    // 直接写入数据
+                    outputFile.write(outputBuffer[j].data(), BUFFER_SIZE);
+                }
+            }
+            
+            // 清理缓冲数据
+            for (int j = 0; j < currentThreads; j++) {
+                outputBuffer[j].clear();
+            }
+        }
     }
     streampos nowPos = inputFile.tellg();
     // 关闭文件
