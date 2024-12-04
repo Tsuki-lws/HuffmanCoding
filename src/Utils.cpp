@@ -1,35 +1,145 @@
 #include "Utils.h"
 
-int getEncodeOrDecode()
-{
-    cout << "======================欢迎使用哈夫曼压缩&解压缩工具========================" << endl;
-    cout << "请选择你要使用的功能\n1.压缩\n2.解压缩" << endl;
-    while (1)
-    {
+// int getEncodeOrDecode()
+// {
+//     cout << "======================欢迎使用哈夫曼压缩&解压缩工具========================" << endl;
+//     cout << "请选择你要使用的功能\n1.压缩\n2.解压缩" << endl;
+//     while (1)
+//     {
+//         string line;
+//         getline(cin, line);
+//         if (line.size() == 1)
+//         {
+//             if (line == "1")
+//             {
+//                 return COMPRESS;
+//             }
+//             else if (line == "2")
+//             {
+//                 return DECOMPRESS;
+//             }
+//             else
+//             {
+//                 cout << "无效输入" << endl;
+//             }
+//         }
+//         else
+//         {
+//             cout << "无效输入" << endl;
+//         }
+//     }
+// }
+
+void start(){
+    while(true){
+        // 提示用户输入命令
+        cout << "Enter command (or 'exit' to quit): ";
         string line;
         getline(cin, line);
-        if (line.size() == 1)
-        {
-            if (line == "1")
-            {
-                return COMPRESS;
-            }
-            else if (line == "2")
-            {
-                return DECOMPRESS;
-            }
-            else
-            {
-                cout << "无效输入" << endl;
-            }
+
+        // 如果用户什么都没输入，跳过本次循环
+        if (line.empty()) {
+            continue;
         }
-        else
-        {
-            cout << "无效输入" << endl;
+        istringstream ss(line);
+        vector<string> command;
+        string word;
+        while (ss >> word) {
+            command.push_back(word);
+        }
+
+        // 判断输入的命令是否合法
+        if (command.size() > 0 && 
+                            (command[0] == "hfm" || command[0] == "unhfm" || command[0] == "exit")) {
+            Features tool;
+            // 根据命令读取相应的参数
+            if (command[0] == "hfm") {
+                string filename, outputName, password;
+                if (command.size() < 3) {
+                    cerr << "Error: 'hfm' requires at least two arguments: filename and outputName." << endl;
+                    continue;
+                }
+                if(command.size() > 4) {
+                    cerr << "Error: 'hfm' requires at last three arguments: filename, outputName and password." << endl;
+                    continue;
+                }
+                // 获取文件名和输出名
+                filename = command[1];
+                fs::path path(filename);
+                if (!fs::exists(path)) {
+                    cout << "Filename invalid, please re-enter." << endl;
+                    continue;
+                }
+                outputName = command[2];
+                outputName += ".hfm"; 
+                bool cover = true; // 默认为覆盖
+                cover = checkCompressOutputPath(outputName);
+                if(!cover){
+                    cout << "please re-enter" <<endl;
+                    continue;
+                }
+                // 获取密码（可选）
+                if (command.size() > 3) {
+                    password = command[3];
+                }
+                cout << "Compressing, please wait..." << endl;
+                clock_t start = clock();
+                tool.compress(filename,outputName,password);
+                clock_t end = clock();
+                cout << "Compression successful" << endl 
+                << "Compression time: " << fixed << setprecision(2) 
+                << (double)(end - start) / CLOCKS_PER_SEC << " seconds" << endl;
+            } else if (command[0] == "unhfm") {
+                string filename, outputName;
+                if (command.size() < 2) {
+                    cerr << "Error: 'unhfm' requires at least one argument: filename." << endl;
+                    continue;
+                }
+                if (command.size() > 3) {
+                    cerr << "Error: 'unhfm' requires at last two argument: filename and outputName." << endl;
+                    continue;
+                }
+
+                // 获取文件名和输出名
+                filename = command[1];
+                fs::path path(filename);
+                if (!fs::exists(path)) {
+                    cerr << "Error: Invalid path, please re-enter." << endl;
+                    continue;
+                }else{
+                    if(path.extension().string() != ".hfm"){
+                        cerr << "Error: The file is not Huffman compressed, please re-enter." << endl;
+                        continue;
+                    }
+                }
+                outputName = (command.size() > 2) ? command[2] : "";
+                int passLength = passwordCorrect(filename);
+                cout << "Decompressing, please wait..." << endl;
+                clock_t start = clock();
+                tool.decompress(filename,outputName,passLength);
+                clock_t end = clock();
+                cout << "Decompression successful" << endl 
+                << "Decompression time: " << fixed << setprecision(2) 
+                << (double)(end - start) / CLOCKS_PER_SEC << " seconds" << endl;
+            }
+            else if(command[0] == "exit"){
+                // 如果输入是 'exit'，则退出程序
+                if (command.size() == 1) {
+                    cout << "Exiting program." << endl;
+                    break;
+                }else{
+                    // 如果输入的命令不符合要求，输出错误提示
+                    cerr << "Error: Unknown command '" 
+                    << line << "'. Valid commands: 'hfm', 'unhfm', 'exit'." << endl;
+                }
+            }
+        }else{
+            // 如果输入的命令不符合要求，输出错误提示
+            cerr << "Error: Unknown command '" 
+            << line << "'. Valid commands: 'hfm', 'unhfm', 'exit'." << endl;
         }
     }
 }
-
 void Execution(int choice) {
     Features tool;
     switch(choice) {
@@ -38,7 +148,6 @@ void Execution(int choice) {
             auto names = printInteraction(COMPRESS);
             // 添加压缩密码
             string password = encrypt();
-            
             clock_t start = clock();
             cout << "压缩中,请等待" << endl;
             tool.compress(names[0],names[1],password);
@@ -77,7 +186,7 @@ string* printInteraction(int choice) {
             cout << "请输入你的目标文件名" << endl;
             while(1){
                 getline(cin,name[1]);
-                name[1] += ".huf"; 
+                name[1] += ".hfm"; 
                 bool cover = true; // 默认为覆盖
                 cover = checkCompressOutputPath(name[1]);
                 if(!cover){
@@ -98,7 +207,7 @@ string* printInteraction(int choice) {
                     cout << "无效的路径,请重新输入" << endl;
                     continue;
                 }else{
-                    if(path.extension().string() == ".huf"){
+                    if(path.extension().string() == ".hfm"){
                         break;
                     }else{
                         cout << "文件不是经哈夫曼压缩的,请重新输入" << endl;
@@ -173,14 +282,14 @@ int passwordCorrect(const string& filename) {
     }else{
         string correctPassword(passLength, '\0');
         input.read(&correctPassword[0], passLength);
-        cout << "请输入解压密码" << endl;
+        cout << "Please enter the password" << endl;
         while(1){
             string inputPassword = decode();
             if (inputPassword == correctPassword) {
                 // return PasswordStatus::CORRECT;
                 return passLength;
             } else {
-                cout << "密码错误,请重新输入" << endl;
+                cerr << "Error: Incorrect password, please re-enter" << endl;
                 continue;
             }
         }
@@ -189,17 +298,17 @@ int passwordCorrect(const string& filename) {
 
 bool checkOutputPath(const string &filepath){
     if(fs::exists(filepath)){
-        cout << filepath << "已存在,是否要覆盖\n1.覆盖\n2.跳过" << endl; 
+        cout << filepath << " already exists, do you want to overwrite it?\n1. Overwrite\n2. Skip" << endl; 
         while(1){
             string line;
             getline(cin,line);
             if(line == "1"){ // 覆盖
                 return true;
             }else if(line == "2"){ // 跳过
-                cout << "已跳过" << endl;
+                cout << "Skipped" << endl;
                 return false;
             }else{
-                cout << "无效输入,请重新输入" << endl;
+                cerr << "Error: Invalid input, please re-enter" << endl;
                 continue;
             }
         }
@@ -208,7 +317,7 @@ bool checkOutputPath(const string &filepath){
 }
 bool checkCompressOutputPath(const string &filepath){
     if(fs::exists(filepath)){
-        cout << filepath <<"已存在,是否要覆盖\n1.覆盖\n2.选择其他路径" << endl; 
+        cout << filepath << " already exists, do you want to overwrite it?\n1. Overwrite\n2. Choose another path" << endl; 
         while(1){
             string line;
             getline(cin,line);
@@ -217,7 +326,7 @@ bool checkCompressOutputPath(const string &filepath){
             }else if(line == "2"){ // 选择其他路径
                 return false;
             }else{
-                cout << "无效输入,请重新输入" << endl;
+                cerr << "Error: Invalid input, please re-enter" << endl;
                 continue;
             }
         }

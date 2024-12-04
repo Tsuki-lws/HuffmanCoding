@@ -42,7 +42,7 @@
             "name": "g++.exe - Build and debug all files in src",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/src/output.exe",
+            "program": "${workspaceFolder}/src/Huffman.exe",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/src",

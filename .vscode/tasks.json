@@ -4,7 +4,7 @@
         "type": "cppbuild",
         "label": "C/C++: g++.exe build all files in src",
         "command": "D:\\MSYS2\\mingw64\\bin\\g++.exe",
-        "args": ["-g", "src\\*.cpp", "-o", "src\\output.exe"],
+        "args": ["-g", "src\\*.cpp", "-o", "src\\Huffman.exe"],
         "options": {
           "cwd": "${workspaceFolder}"
         },

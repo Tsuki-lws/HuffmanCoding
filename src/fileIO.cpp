@@ -103,8 +103,8 @@ string *FileIO::handleNonEmptyFileHead(const string &filename,
     // cout << "压缩处理总"<< end - a1 << endl;
     return charCodeArray;
 }
-
-vector<char> compressBlock(const char *inputBuffer, int size, const string *charCodeArray,int j)
+// 压缩块
+vector<char> FileIO::compressBlock(const char *inputBuffer, int size, const string *charCodeArray)
 {
     vector<char> outputBuffer;
     unsigned char bits = 0;
@@ -230,19 +230,22 @@ void FileIO::compressFile(const string &filename, const string &outputFileName, 
             outputFile.write((char *)(&totalBlocks), sizeof(totalBlocks));
             // 将最后一块的大小写入文件
             outputFile.write((char *)(&lastBlocksSize),sizeof(lastBlocksSize));
+
+            vector<vector<char>> inputBuffer(maxThreads, vector<char>(BUFFER_SIZE));
+            vector<vector<char>> outputBuffer(maxThreads);
+            vector<thread> threads;
+
             for (int i = 0; i < times; i++)
             {
-                vector<vector<char>> inputBuffer(maxThreads, vector<char>(BUFFER_SIZE));
-                vector<vector<char>> outputBuffer(maxThreads);
                 int currentThreads = min(maxThreads, totalBlocks - i * maxThreads);
-                vector<thread> threads;
+                threads.clear();   
                 for (int j = 0; j < currentThreads; j++)
                 {
                     int readSize = (i == times - 1 && j == currentThreads - 1) ? lastBlocksSize : BUFFER_SIZE;
                     inputFile.read(inputBuffer[j].data(), readSize);
                     threads.emplace_back([&, j, readSize]()
                     {
-                        outputBuffer[j] = compressBlock(inputBuffer[j].data(), readSize, charCodeArray,j);
+                        outputBuffer[j] = compressBlock(inputBuffer[j].data(), readSize, charCodeArray);
                     });
                 }
                 for (auto &t : threads)
@@ -256,10 +259,6 @@ void FileIO::compressFile(const string &filename, const string &outputFileName, 
                     outputFile.write(reinterpret_cast<char*>(&bufferSize), sizeof(bufferSize));
                     // 再写入数据
                     outputFile.write(outputBuffer[j].data(), bufferSize);
-                }
-                // 清理缓冲数据
-                for (int j = 0; j < currentThreads; j++) {
-                    outputBuffer[j].clear();
                 }
             }
         }
@@ -306,7 +305,7 @@ pair<map<char, long long>, streampos> FileIO::readCompressTFileFreq(const string
 }
 
 // 解压缩块
-vector<char> decompressBlock(const char* inputBuffer, int size,HuffmanNode *current)
+vector<char> FileIO::decompressBlock(const char* inputBuffer, int size,HuffmanNode *current)
 {
     vector<char> outputBuffer;
     HuffmanNode *root = current;
@@ -331,7 +330,7 @@ vector<char> decompressBlock(const char* inputBuffer, int size,HuffmanNode *curr
     return outputBuffer;
 }
 // 解压缩文件
-streampos FileIO::decompressFile(const string &filename, string &outputFileName,
+streampos FileIO::decompressFile(const string &filename, const string &outputFileName,
                                  long long filesize, const streampos &startIndex)
 {
     // 读取头文件信息
@@ -451,46 +450,40 @@ streampos FileIO::decompressFile(const string &filename, string &outputFileName,
         int maxThreads = min((int)(thread::hardware_concurrency()), totalBlocks);
         int times = (totalBlocks + maxThreads - 1) / maxThreads;
         int lastTime = times - 1;
+
+        vector<vector<char>> outputBuffer(maxThreads);
+        vector<vector<char>> inputBuffer(maxThreads);
+        vector<thread> threads;
+
         for(int i = 0; i < times; i++){
-            vector<vector<char>> outputBuffer(maxThreads);
             int currentThreads = min(maxThreads, totalBlocks - i * maxThreads);
-            vector<vector<char>> inputBuffer(currentThreads);
-            vector<thread> threads;
+            int lastCurrentTheard = currentThreads - 1;
+            threads.clear();
             for (int j = 0; j < currentThreads; j++)
             {
                 int readSize = 0;
                 inputFile.read((char*)&readSize,sizeof(readSize));
                 inputBuffer[j].resize(readSize);
                 inputFile.read(inputBuffer[j].data(),readSize);
-                HuffmanNode *current = root;
+                // HuffmanNode *current = root;
                 threads.emplace_back([&, j, readSize]()
                 {
-                    outputBuffer[j] = decompressBlock(inputBuffer[j].data(), readSize, current);
+                    outputBuffer[j] = decompressBlock(inputBuffer[j].data(), readSize, root);
                 });
             }
             for (auto &t : threads)
             {
                 t.join();
             }
-            if(i == lastTime){
-                for (int j = 0; j < currentThreads - 1; j++)
-                {
-                    // 直接写入数据
-                    outputFile.write(outputBuffer[j].data(), BUFFER_SIZE);
-                }
-                // 最后一块特殊处理
-                outputFile.write(outputBuffer[currentThreads - 1].data(), lastBlockSize);
-            }else{
-                for (int j = 0; j < currentThreads; j++)
-                {
-                    // 直接写入数据
-                    outputFile.write(outputBuffer[j].data(), BUFFER_SIZE);
-                }
-            }
-            
-            // 清理缓冲数据
+
+            // 写入解压后的数据
             for (int j = 0; j < currentThreads; j++) {
-                outputBuffer[j].clear();
+                if (i == lastTime && j == lastCurrentTheard) {
+                    // 最后一块特殊处理
+                    outputFile.write(outputBuffer[j].data(), lastBlockSize);
+                } else {
+                    outputFile.write(outputBuffer[j].data(), BUFFER_SIZE);
+                }
             }
         }
     }

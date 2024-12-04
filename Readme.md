@@ -33,3 +33,16 @@
 
 - C++ 标准库
 - `<filesystem>` 库
+
+
+## 使用说明
+
+- hfm 压缩指令
+  - hfm filename outputName               将filename压缩到outputName
+  - hfm filename outputName password      将filename压缩到outputName并设置压缩密码password
+  - hfm DirectoryName outputName password 将DirectoryName压缩到outputName并设置压缩密码password
+
+- unhfm 解压缩指令
+  - unhfm filename                          解压缩filename到当前文件夹
+  - unhfm filename outputName               将filename解压缩到outputName文件夹下
+  <!-- - unhfm filename outputName password 以压缩密码password将filename解压缩到outputName -->

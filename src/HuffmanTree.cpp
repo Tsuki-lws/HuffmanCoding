@@ -28,24 +28,6 @@ unordered_map<char, string> HuffmanTree::createHuffmanCode() {
 void HuffmanTree::subCreateHuffmanCode(HuffmanNode* root, 
                 string huffmancode, unordered_map<char,string>& charCode) {
 
-    // if(isLeaf(root)) {
-    //     charCode[root->data] = huffmancode;
-    //     return;
-    // }
-    // //在分叉点复制一份相同的编码用于右子树
-    // string right = huffmancode;
-    // //是左子树加0
-    // if(root->left != nullptr) {
-    //     huffmancode += '0';
-    //     subCreateHuffmanCode(root->left,huffmancode,charCode);
-    // }
-    // //是右子树加1
-    // if(root->right!=nullptr){
-    //     huffmancode = right;
-    //     huffmancode += '1';
-    //     subCreateHuffmanCode(root->right,huffmancode,charCode);
-    // }
-
     //在分叉点复制一份相同的编码用于右子树
     string right = huffmancode;
     // 是左子树加0

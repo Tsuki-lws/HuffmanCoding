@@ -21,8 +21,8 @@ enum PasswordStatus {
     INCORRECT = 2,
     EXIT = 3
 };
-// 与用户交互
-int getEncodeOrDecode();
+// 启动程序,与用户交互
+void start();
 // 执行选择
 void Execution(int choice);
 // 简化交互

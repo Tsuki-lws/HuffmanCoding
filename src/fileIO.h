@@ -51,7 +51,7 @@ class FileIO{
         pair<map<char, long long>,streampos> readCompressTFileFreq(const string& filename,
                                                         int alphaVarity,streampos currentPos);
         // 解压缩单个文件
-        streampos decompressFile(const string& filename,string& outputFileName,
+        streampos decompressFile(const string& filename,const string& outputFileName,
                                         long long filesize,const streampos &startIndex);
 
         
@@ -63,5 +63,11 @@ class FileIO{
         // 处理非空文件
         string* handleNonEmptyFileHead(const string &filename,
                     const string &outputFileName, const string &prefix, ifstream &inputFile,ofstream &outputFile);
+
+        // 压缩块
+        vector<char> compressBlock(const char *inputBuffer, int size, const string *charCodeArray);
+
+        // 解压缩块
+        vector<char> decompressBlock(const char* inputBuffer, int size,HuffmanNode *current);
 };
 #endif

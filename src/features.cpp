@@ -40,7 +40,7 @@ void Features::compress(const string &filename, const string &outputFileName, co
         compressFile(filename, outputFileName,prefix);
     }
 }
-
+// 压缩单个文件
 long long Features::compressFile(const string &filename, const string &outputFileName, const string &prefix)
 {
     long long size;
@@ -144,7 +144,7 @@ void Features::decompress(const string& filename, string& outputFileName, int pa
         case 0:
         {
             // 文件夹
-            decompressDir(filename,currentPos);
+            decompressDir(filename,outputFileName,currentPos);
             break;
         }
         case 1:
@@ -165,7 +165,13 @@ void Features::decompressFile(const string &filename, string &outputFileName, st
     input.read((char*)(&pathLength),sizeof(pathLength));
     string pathBuffer(pathLength, '\0');
     input.read(&pathBuffer[0], pathLength);
-    outputFileName = pathBuffer;
+    // 加入指定前缀,
+    if(outputFileName != ""){
+        outputFileName += ("\\" + pathBuffer);
+    }else{
+        outputFileName = pathBuffer;
+    }
+    
     currentPos = input.tellg();
     input.close();
 
@@ -183,7 +189,7 @@ void Features::decompressFileTask(const string& filename, string& filepath, int 
     fileIO.decompressFile(filename, filepath, filesize, startIndex);  
 }
 // 解压缩文件夹
-void Features::decompressDir(const string &filename, streampos currentPos)
+void Features::decompressDir(const string &filename, const string &prefix ,streampos currentPos)
 {
     ifstream inputFile(filename, ios::in | ios::binary);
     inputFile.seekg(currentPos);
@@ -200,7 +206,7 @@ void Features::decompressDir(const string &filename, streampos currentPos)
         inputFile.read(reinterpret_cast<char *>(&pathLength), sizeof(pathLength));
         path.resize(pathLength);
         inputFile.read(&path[0], pathLength);
-        fs::create_directories(path); // 创建目录
+        fs::create_directories(prefix + "\\" + path); // 创建目录
     }
 
     // 读取文件名长度
@@ -275,7 +281,7 @@ void Features::decompressDir(const string &filename, streampos currentPos)
                 continue;
             }
             FileIO fileIO;
-            fileIO.decompressFile(filename, filepath[i], filesize[i], startIndex[i]);
+            fileIO.decompressFile(filename,prefix +"\\"+ filepath[i], filesize[i], startIndex[i]);
         }
     // }
     

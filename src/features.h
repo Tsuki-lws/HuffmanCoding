@@ -34,7 +34,7 @@ class Features {
         void decompressFile(const string& filename, string& outputFileName, streampos currentPos);
 
         // 解压缩文件夹
-        void decompressDir(const string& filename, streampos currentPos);
+        void decompressDir(const string& filename, const string &prefix, streampos currentPos);
         
         // 用于多线程
         void decompressFileTask(const string& filename, string& filepath, int filesize, int startIndex);
