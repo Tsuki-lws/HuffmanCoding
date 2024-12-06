@@ -1,101 +1,53 @@
-// #include <thread>
-// #include <vector>
-// #include <mutex>
-// // ...existing code...
+// 读取移位
+void FileIO::readGresson(unsigned char &bits, int &bitcount, int& inputIndex, char* buffer, long &size, ifstream& file, bool &data) {
+    if (bitcount == 0) {
+        if (inputIndex >= size) {
+            file.read(buffer, BUFFER_SIZE);
+            size = file.gcount();
+            inputIndex = 0;
+        }
+        bits = buffer[inputIndex++];
+    }
 
-// std::mutex mtx;
-// std::vector<std::string> processedData(times + 1);
+    data = (bits >> 7) & 1;
+    bits <<= 1;
+    bitcount++;
+}
 
-// void processChunk(int chunkIndex, std::ifstream &inputFile, const std::vector<std::string> &charCodeArray) {
-//     char inputBuffer[BUFFER_SIZE];
-//     char outputBuffer[BUFFER_SIZE];
-//     int outputIndex = 0;
-//     unsigned char bits = 0;
-//     int bitcount = 0;
+// 从缓冲区读取哈夫曼树
+HuffmanNode* FileIO::readTreeFromBuffer(ifstream& file, char* buffer, int& inputIndex, int &bitcount, unsigned char &bits, long &size) {
+    bool isLeaf;
+    readGresson(bits, bitcount, inputIndex, buffer, size, file, isLeaf);
+    if (isLeaf) {  // 叶子节点
+        char data = 0;
+        for (int i = 0; i < 8; i++) {
+            bool bit;
+            readGresson(bits, bitcount, inputIndex, buffer, size, file, bit);
+            data |= (bit << (7 - i));
+        }
+        return new HuffmanNode(data);  // 创建叶子节点
+    } else {  // 非叶子节点
+        HuffmanNode* node = new HuffmanNode();
+        node->left = readTreeFromBuffer(file, buffer, inputIndex, bitcount, bits, size);  // 递归读取左子树
+        node->right = readTreeFromBuffer(file, buffer, inputIndex, bitcount, bits, size);  // 递归读取右子树
+        return node;
+    }
+}
 
-//     inputFile.seekg(chunkIndex * BUFFER_SIZE, std::ios::beg);
-//     inputFile.read(inputBuffer, BUFFER_SIZE * sizeof(char));
-
-//     std::string result;
-//     for(size_t i = 0; i < BUFFER_SIZE; i++){
-//         string currentChar = charCodeArray[(unsigned char)inputBuffer[i]];
-//         int length = currentChar.length();
-//         for(size_t j = 0; j < length; j++){
-//             bits <<= 1;
-//             bits |= (currentChar[j] == '1'); 
-//             bitcount++;
-//             if(bitcount == 8){
-//                 result += bits;
-//                 bits = 0;
-//                 bitcount = 0;
-//             }
-//         }
-//     }
-//     if (bitcount > 0) {
-//         for(int i = bitcount; i < 8; i++){
-//             bits <<= 1;
-//             bits |= 0;
-//         }
-//         result += bits;
-//     }
-
-//     std::lock_guard<std::mutex> lock(mtx);
-//     processedData[chunkIndex] = result;
-// }
-
-// int main() {
-//     // ...existing code...
-//     std::ifstream inputFile(filename, std::ios::binary);
-//     std::ofstream outputFile(outputFilename, std::ios::binary);
-
-//     std::vector<std::thread> threads;
-//     for(int i = 0; i < times; i++){
-//         threads.emplace_back(processChunk, i, std::ref(inputFile), std::ref(charCodeArray));
-//     }
-
-//     for(auto &t : threads) {
-//         t.join();
-//     }
-
-//     // 处理不满BUFFER_SIZE的部分
-//     char inputBuffer[BUFFER_SIZE];
-//     char outputBuffer[BUFFER_SIZE];
-//     int outputIndex = 0;
-//     unsigned char bits = 0;
-//     int bitcount = 0;
-//     long long others = filesize % BUFFER_SIZE;
-//     inputFile.seekg(times * BUFFER_SIZE, std::ios::beg);
-//     inputFile.read(inputBuffer, others * sizeof(char));
-
-//     std::string result;
-//     for(size_t i = 0; i < others; i++){
-//         string currentChar = charCodeArray[(unsigned char)inputBuffer[i]];
-//         int length = currentChar.length();
-//         for(size_t j = 0; j < length; j++){
-//             bits <<= 1;
-//             bits |= (currentChar[j] == '1'); 
-//             bitcount++;
-//             if(bitcount == 8){
-//                 result += bits;
-//                 bits = 0;
-//                 bitcount = 0;
-//             }
-//         }
-//     }
-//     if (bitcount > 0) {
-//         for(int i = bitcount; i < 8; i++){
-//             bits <<= 1;
-//             bits |= 0;
-//         }
-//         result += bits;
-//     }
-//     processedData[times] = result;
-
-//     for(const auto &data : processedData) {
-//         outputFile.write(data.c_str(), data.size());
-//     }
-
-//     inputFile.close();
-//     outputFile.close();
-//     return 0;
-// }
+// 读取哈夫曼树并返回树的根节点
+HuffmanNode* FileIO::readHuffmanTree(ifstream& file) {
+    char buffer[BUFFER_SIZE];  // 缓冲区
+    int inputIndex = 0;  // 缓冲区当前位置
+    int bitcount = 0;
+    unsigned char bits = 0;
+    long size = 0;
+    
+    // 获取文件中树的大小
+    streampos treePos = file.tellg();
+    long treeSize;
+    file.read(reinterpret_cast<char*>(&treeSize), sizeof(long));  // 读取树的大小
+    
+    // 从文件中读取哈夫曼树结构并重建
+    HuffmanNode* root = readTreeFromBuffer(file, buffer, inputIndex, bitcount, bits, size);
+    return root;
+}

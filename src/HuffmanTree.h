@@ -5,6 +5,7 @@
 #include<map>
 #include<unordered_map>
 #include<string>
+#include<iostream>
 using namespace std;
 
 // 带权节点
@@ -15,7 +16,11 @@ class HuffmanNode {
         HuffmanNode* left;
         HuffmanNode* right;
 
-        // 两个构造函数
+        // 四个构造函数
+        HuffmanNode() 
+            :data('t'),freq(0), left(nullptr), right(nullptr) {}
+        HuffmanNode(char data)
+            :data(data), freq(0), left(nullptr), right(nullptr) {}
         HuffmanNode(char data, long long freq) 
             : data(data), freq(freq), left(nullptr), right(nullptr) {}
         HuffmanNode(char data, long long freq, HuffmanNode* left, HuffmanNode* right) 
@@ -29,14 +34,17 @@ class HuffmanNode {
 
 class HuffmanTree {
     public:
+        int leafNumber; 
         //从小到大排列的优先队列
         priority_queue<HuffmanNode> q;
         //构造函数
+        HuffmanTree() {}
         HuffmanTree(map<char, long long> charFreq) {
             for (auto p : charFreq) {
                 HuffmanNode node(p.first, p.second);
                 q.push(node);
             }
+            leafNumber = q.size();
         }
         //创建哈夫曼树
         void createHuffmanTree();

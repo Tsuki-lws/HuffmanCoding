@@ -47,6 +47,68 @@ map<char, long long> FileIO::makeCharFreq(const string &filename)
     return freqTable;
 }
 
+// 处理移位
+void FileIO::gresson(char &bits, int &bitcount, int& outputIndex,char* buffer,ofstream& file,bool data){
+    bits <<= 1;
+    bits |= data;
+    bitcount++;
+
+    if(bitcount == 8){
+        buffer[outputIndex++] = bits;
+        bits = 0;
+        bitcount = 0;
+        if (outputIndex == BUFFER_SIZE)
+        {
+            file.write(buffer, outputIndex);
+            outputIndex = 0;
+        }
+    }
+}
+
+// 前序遍历存哈夫曼树到缓冲区
+void FileIO::writeTreeToBuffer(ofstream& file, HuffmanNode* root, char* buffer, int& outputIndex, 
+                                                                            int &bitcount, char &bits) {
+    if (!root) return;
+
+    if (root->left == nullptr && root->right == nullptr) {  // 叶子节点
+        // 写入标记位和字符，1表示叶子节点
+        gresson(bits, bitcount, outputIndex,buffer,file,1);
+        char data = root->data;
+        for(int i = 0; i < 8; i++){
+            // 从高到底位写入
+            gresson(bits, bitcount, outputIndex,buffer,file,((data >> (7 - i)) & 1));
+        }
+    } else {  // 非叶子节点
+        // 写入标记位，0表示非叶子节点
+        gresson(bits, bitcount, outputIndex,buffer,file,0);
+    }
+
+    // 递归写入左右子树
+    writeTreeToBuffer(file, root->left, buffer, outputIndex,bitcount,bits);
+    writeTreeToBuffer(file, root->right, buffer, outputIndex,bitcount,bits);
+}
+
+// 写入哈夫曼树结构并记录文件大小
+void FileIO::writeHuffmanTree(ofstream& file, HuffmanNode* root) {
+    char buffer[BUFFER_SIZE] = {0} ;  // 缓冲区
+    int outputIndex = 0;  // 缓冲区当前位置
+    int bitcount = 0;
+    char bits = 0;
+    // 计算树的大小并写入缓冲区
+    writeTreeToBuffer(file, root, buffer, outputIndex,bitcount,bits);
+    if (!!bitcount)
+    {
+        // 补齐八位
+        for(int i = bitcount; i < 8;i++){
+            bits <<= 1;
+            bits |= 0;
+        }
+        buffer[outputIndex++] = bits;
+    }
+    file.write(buffer, outputIndex);
+    outputIndex = 0;
+}
+
 // 处理空文件
 void FileIO::handleEmptyFile(const string &filename, const string &outputFileName,
                              const string &prefix, ifstream &inputFile, ofstream &outputFile)
@@ -58,8 +120,8 @@ void FileIO::handleEmptyFile(const string &filename, const string &outputFileNam
 }
 
 // 处理非空文件非主内容信息
-string *FileIO::handleNonEmptyFileHead(const string &filename,
-                                       const string &outputFileName, const string &prefix, ifstream &inputFile, ofstream &outputFile)
+string *FileIO::handleNonEmptyFileHead(const string &filename,const string &outputFileName, 
+                                            const string &prefix, ifstream &inputFile, ofstream &outputFile)
 {
     // 读取文件并构建字符频率表，在后面可以改到前一层，把这4行作为参数传进来
     // 这样应该可以解决解压缩文件代码中的错误（好像不太行，这是独立的）
@@ -89,16 +151,15 @@ string *FileIO::handleNonEmptyFileHead(const string &filename,
     static string charCodeArray[256];
     for (const auto &pair : charCode)
     {
-        // charCodeArray[(int)pair.first + 128] = pair.second;
         charCodeArray[(unsigned char)pair.first] = pair.second;
     }
 
-    // 写入字符频度信息
-    for (auto &entry : freqTable)
-    {
-        alphaCode af(entry);
-        outputFile.write(reinterpret_cast<char *>(&af), sizeof(af));
-    }
+    HuffmanNode *root = tree.getHuffmanRoot();
+
+    // 手动计算
+    long tree_size = (10*tree.leafNumber - 1 + 7) / 8;
+    outputFile.write(reinterpret_cast<char*>(&tree_size), sizeof(long));  
+    writeHuffmanTree(outputFile,root);
     //  clock_t end = clock();
     // cout << "压缩处理总"<< end - a1 << endl;
     return charCodeArray;
@@ -146,7 +207,7 @@ void FileIO::compressFile(const string &filename, const string &outputFileName, 
     // 追加写入
     ofstream outputFile(outputFileName, ios::out | ios::binary | ios::app);
     // 对于空文件，直接写入0
-    if (std::filesystem::file_size(entry) == 0)
+    if (filesystem::file_size(entry) == 0)
     {
         handleEmptyFile(filename, outputFileName, prefix, inputFile, outputFile);
     }
@@ -264,6 +325,7 @@ void FileIO::compressFile(const string &filename, const string &outputFileName, 
         }
         inputFile.close();
         outputFile.close();
+        
     }
 }
 
@@ -304,6 +366,63 @@ pair<map<char, long long>, streampos> FileIO::readCompressTFileFreq(const string
     return make_pair(freqTable, newPos);
 }
 
+
+// 读取并恢复字节数据
+bool FileIO::readGresson(char &bits, int &bitcount, int& inputIndex, vector<char> &buffer, 
+                                            long &remainingSize, ifstream& file, bool &data) {
+    if (bitcount == 0) { 
+        if (inputIndex >= remainingSize) {  // 如果当前缓冲区已读完
+            return false;  // 不再继续读取
+        }
+        bits = buffer[inputIndex++];
+        bitcount = 8;
+        // remainingSize--;
+    }
+
+    data = (bits >> 7) & 1;  // 取出当前位的值
+    bits <<= 1;  // 移位
+    bitcount--;
+    return true;
+}
+
+// 从文件中读取哈夫曼树
+HuffmanNode* FileIO::readTreeFromBuffer(ifstream& file, vector<char> &buffer, int& inputIndex, 
+                                                        int &bitcount, char &bits, long &remainingSize) {
+    bool data;
+    if (!readGresson(bits, bitcount, inputIndex, buffer, remainingSize, file, data)) return nullptr;
+
+    if (data == 1) {  // 叶子节点
+        char c = 0;
+        for (int i = 0; i < 8; i++) {
+            if (!readGresson(bits, bitcount, inputIndex, buffer, remainingSize, file, data)) return nullptr;
+            c = (c << 1) | data;  // 组装字符
+        }
+        return new HuffmanNode(c);  // 创建叶子节点
+    } else {  // 非叶子节点
+        if(inputIndex == remainingSize - 1){
+            return nullptr;
+        }
+        HuffmanNode* node = new HuffmanNode();
+        node->left = readTreeFromBuffer(file, buffer, inputIndex, bitcount, bits, remainingSize);  // 递归读取左子树
+        node->right = readTreeFromBuffer(file, buffer, inputIndex, bitcount, bits, remainingSize);  // 递归读取右子树
+        return node;
+    }
+}
+
+
+// 读取哈夫曼树并返回根节点
+HuffmanNode* FileIO::readHuffmanTree(ifstream& file, long size) {
+    vector<char> buffer(size);  // 缓冲区
+    int inputIndex = 0;  // 缓冲区当前位置
+    int bitcount = 0;
+    char bits = 0;
+    long remainingSize = size;  // 剩余读取的字节数
+    file.read((char*)(buffer.data()), size);
+    return readTreeFromBuffer(file, buffer, inputIndex, bitcount, bits, remainingSize);  // 开始读取树
+}
+
+
+
 // 解压缩块
 vector<char> FileIO::decompressBlock(const char* inputBuffer, int size,HuffmanNode *current)
 {
@@ -342,24 +461,30 @@ streampos FileIO::decompressFile(const string &filename, const string &outputFil
         outputFile.close();
         return currentPos;
     }
-    // 读取字符频度信息
-    auto [freqTable, newPos] = readCompressTFileFreq(filename, filehead.alphaVarity, currentPos);
+    // // 读取字符频度信息
+    // auto [freqTable, newPos] = readCompressTFileFreq(filename, filehead.alphaVarity, currentPos);
 
-    // 构建哈夫曼树
-    HuffmanTree tree(freqTable);
-    tree.createHuffmanTree();
-    // 返回子节点
-    HuffmanNode *root = tree.getHuffmanRoot();
+    // // 构建哈夫曼树
+    // HuffmanTree tree(freqTable);
+    // tree.createHuffmanTree();
+    // // 返回子节点
+    // HuffmanNode *root = tree.getHuffmanRoot();
+    HuffmanTree tree;
 
     ifstream inputFile(filename, ios::in | ios::binary);
     // 始终是覆盖写入
     ofstream outputFile(outputFileName, ios::out | ios::binary);
-
-    // 定位到存储文件的位置
-    inputFile.seekg(newPos);
+     // 定位到存储文件的位置
+    inputFile.seekg(currentPos);
+    long size;
+    inputFile.read(reinterpret_cast<char*>(&size), sizeof(long));  // 读取树的大小
+    HuffmanNode* root = readHuffmanTree(inputFile,size);
+    // // 测试代码
+    // tree.printHuffmanTree(root);
 
     char check;
     inputFile.read(&check,sizeof(check));
+    streampos newPos = currentPos + streamoff(1) + streamoff(sizeof(size));
     if(check == '1'){
         HuffmanNode *current = root;
         // 缓冲区

@@ -10,7 +10,7 @@
 #include "HuffmanTree.h"
 #include <thread>
 #define BUFFER_SIZE (512*1024)
-#define FILE_SIZE (10*1024*1024)
+#define FILE_SIZE (20*1024*1024)
 using namespace std;
 
 enum FileType {
@@ -54,7 +54,11 @@ class FileIO{
         streampos decompressFile(const string& filename,const string& outputFileName,
                                         long long filesize,const streampos &startIndex);
 
+        // 写入哈夫曼树结构并记录文件大小
+        void writeHuffmanTree(ofstream& file, HuffmanNode* root);
         
+        // 读取哈夫曼树并返回树的根节点
+        HuffmanNode* readHuffmanTree(ifstream& file, long size);
     private:
         // 处理空文件
         void handleEmptyFile(const string &filename, const string &outputFileName, const string &prefix,
@@ -69,5 +73,18 @@ class FileIO{
 
         // 解压缩块
         vector<char> decompressBlock(const char* inputBuffer, int size,HuffmanNode *current);
-};
+
+        // 处理移位
+        void gresson(char &bits, int &bitcount, int& outputIndex,char* buffer,ofstream& file,bool data);
+
+        // 前序遍历存哈夫曼树到缓冲区
+        void writeTreeToBuffer(ofstream& file, HuffmanNode* root, char* buffer, 
+                                                            int& outputIndex, int &bitcount, char &bits);
+        
+        HuffmanNode* readTreeFromBuffer(ifstream& file, vector<char> &buffer, int& inputIndex, 
+                                                        int &bitcount, char &bits, long &remainingSize);
+        // 读取移位
+        bool readGresson(char &bits, int &bitcount, int& inputIndex, vector<char> &buffer, 
+                                            long &remainingSize, ifstream& file, bool &data);
+};          
 #endif
