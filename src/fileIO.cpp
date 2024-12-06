@@ -47,7 +47,7 @@ map<char, long long> FileIO::makeCharFreq(const string &filename)
     return freqTable;
 }
 
-// 处理移位
+// 处理移位:哈夫曼树
 void FileIO::gresson(char &bits, int &bitcount, int& outputIndex,char* buffer,ofstream& file,bool data){
     bits <<= 1;
     bits |= data;
@@ -125,28 +125,17 @@ string *FileIO::handleNonEmptyFileHead(const string &filename,const string &outp
 {
     // 读取文件并构建字符频率表，在后面可以改到前一层，把这4行作为参数传进来
     // 这样应该可以解决解压缩文件代码中的错误（好像不太行，这是独立的）
-    // clock_t start = clock();
     map<char, long long> freqTable = makeCharFreq(filename);
-    // clock_t end2 = clock();
-    // cout<<"1:"<<end2 - start<<endl;
 
-    // clock_t a3 = clock();
     HuffmanTree tree = HuffmanTree(freqTable);
-    // clock_t m = clock();
-    // cout << "hfm数构建" << m - a3 << endl;
-    // clock_t a4 = clock();
     unordered_map<char, string> charCode = tree.createHuffmanCode();
-    // clock_t end1 = clock();
-    // cout << "压缩处理分"<< end1 - a4 << endl;
     fileHead filehead;
     // 修改了
     filehead.originBytes = fs::file_size(filename);
-    // inputFile.seekg(0, ios::beg);
     filehead.alphaVarity = charCode.size();
 
     outputFile.write((char *)(&filehead), sizeof(filehead));
 
-    // clock_t a1 = clock();
     // 将charCode查找优化到O(1)
     static string charCodeArray[256];
     for (const auto &pair : charCode)
@@ -160,15 +149,15 @@ string *FileIO::handleNonEmptyFileHead(const string &filename,const string &outp
     long tree_size = (10*tree.leafNumber - 1 + 7) / 8;
     outputFile.write(reinterpret_cast<char*>(&tree_size), sizeof(long));  
     writeHuffmanTree(outputFile,root);
-    //  clock_t end = clock();
-    // cout << "压缩处理总"<< end - a1 << endl;
     return charCodeArray;
 }
+
+// 处理移位:主内容
 // 压缩块
 vector<char> FileIO::compressBlock(const char *inputBuffer, int size, const string *charCodeArray)
 {
     vector<char> outputBuffer;
-    unsigned char bits = 0;
+    char bits = 0;
     int bitcount = 0;
     for (int i = 0; i < size; i++)
     {
@@ -215,6 +204,8 @@ void FileIO::compressFile(const string &filename, const string &outputFileName, 
     {
         string *charCodeArray = handleNonEmptyFileHead(filename, outputFileName, prefix, inputFile, outputFile);
 
+        // clock_t st = clock();
+
         // 写入主内容
         long long filesize = fs::file_size(filename);
         if(filesize < FILE_SIZE){
@@ -224,7 +215,7 @@ void FileIO::compressFile(const string &filename, const string &outputFileName, 
             char inputBuffer[BUFFER_SIZE];
             char outputBuffer[BUFFER_SIZE];
             int outputIndex = 0;
-            unsigned char bits = 0;
+            char bits = 0;
             int bitcount = 0;
             long long filesize = fs::file_size(filename);
             int times = filesize / BUFFER_SIZE;
@@ -234,18 +225,7 @@ void FileIO::compressFile(const string &filename, const string &outputFileName, 
                     string currentChar = charCodeArray[(unsigned char)inputBuffer[i]];
                     int length = currentChar.length();
                     for(size_t j = 0; j < length; j++){
-                        bits <<= 1;
-                        bits |= (currentChar[j] == '1'); 
-                        bitcount++;
-                        if(bitcount == 8){
-                            outputBuffer[outputIndex++] = bits;
-                            bits = 0;
-                            bitcount = 0;
-                        }
-                        if(outputIndex == BUFFER_SIZE){
-                            outputFile.write(outputBuffer, outputIndex);
-                            outputIndex = 0;
-                        }
+                        gresson(bits,bitcount,outputIndex,outputBuffer,outputFile,(currentChar[j] == '1'));
                     }
                 }
             }
@@ -256,18 +236,7 @@ void FileIO::compressFile(const string &filename, const string &outputFileName, 
                 string currentChar = charCodeArray[(unsigned char)inputBuffer[i]];
                 int length = currentChar.length();
                 for(size_t j = 0; j < length; j++){
-                    bits <<= 1;
-                    bits |= (currentChar[j] == '1'); 
-                    bitcount++;
-                    if(bitcount == 8){
-                        outputBuffer[outputIndex++] = bits;
-                        bits = 0;
-                        bitcount = 0;
-                    }
-                    if(outputIndex == BUFFER_SIZE){
-                        outputFile.write(outputBuffer, outputIndex);
-                        outputIndex = 0;
-                    }
+                    gresson(bits,bitcount,outputIndex,outputBuffer,outputFile,(currentChar[j] == '1'));
                 }
             }
             if (!!bitcount)
@@ -283,16 +252,16 @@ void FileIO::compressFile(const string &filename, const string &outputFileName, 
         }else{
             char check = '2';
             outputFile.write(&check, sizeof(check));
-            int totalBlocks = (filesize + BUFFER_SIZE - 1) / BUFFER_SIZE;
+            int totalBlocks = (filesize + BLOCK_SIZE - 1) / BLOCK_SIZE;
             int maxThreads = min((int)(thread::hardware_concurrency()), totalBlocks);
             int times = (totalBlocks + maxThreads - 1) / maxThreads;
-            int lastBlocksSize = filesize % BUFFER_SIZE;
+            int lastBlocksSize = filesize % BLOCK_SIZE;
             // 将总块数写入文件
             outputFile.write((char *)(&totalBlocks), sizeof(totalBlocks));
             // 将最后一块的大小写入文件
             outputFile.write((char *)(&lastBlocksSize),sizeof(lastBlocksSize));
 
-            vector<vector<char>> inputBuffer(maxThreads, vector<char>(BUFFER_SIZE));
+            vector<vector<char>> inputBuffer(maxThreads, vector<char>(BLOCK_SIZE));
             vector<vector<char>> outputBuffer(maxThreads);
             vector<thread> threads;
 
@@ -302,7 +271,7 @@ void FileIO::compressFile(const string &filename, const string &outputFileName, 
                 threads.clear();   
                 for (int j = 0; j < currentThreads; j++)
                 {
-                    int readSize = (i == times - 1 && j == currentThreads - 1) ? lastBlocksSize : BUFFER_SIZE;
+                    int readSize = (i == times - 1 && j == currentThreads - 1) ? lastBlocksSize : BLOCK_SIZE;
                     inputFile.read(inputBuffer[j].data(), readSize);
                     threads.emplace_back([&, j, readSize]()
                     {
@@ -326,6 +295,8 @@ void FileIO::compressFile(const string &filename, const string &outputFileName, 
         inputFile.close();
         outputFile.close();
         
+        // clock_t end = clock();
+        // cout << "主题内容：" << end - st << endl;
     }
 }
 
@@ -461,14 +432,8 @@ streampos FileIO::decompressFile(const string &filename, const string &outputFil
         outputFile.close();
         return currentPos;
     }
-    // // 读取字符频度信息
-    // auto [freqTable, newPos] = readCompressTFileFreq(filename, filehead.alphaVarity, currentPos);
 
-    // // 构建哈夫曼树
-    // HuffmanTree tree(freqTable);
-    // tree.createHuffmanTree();
     // // 返回子节点
-    // HuffmanNode *root = tree.getHuffmanRoot();
     HuffmanTree tree;
 
     ifstream inputFile(filename, ios::in | ios::binary);
@@ -479,9 +444,8 @@ streampos FileIO::decompressFile(const string &filename, const string &outputFil
     long size;
     inputFile.read(reinterpret_cast<char*>(&size), sizeof(long));  // 读取树的大小
     HuffmanNode* root = readHuffmanTree(inputFile,size);
-    // // 测试代码
-    // tree.printHuffmanTree(root);
 
+    // 检查是正常压缩还是多线程压缩
     char check;
     inputFile.read(&check,sizeof(check));
     streampos newPos = currentPos + streamoff(1) + streamoff(sizeof(size));
@@ -607,7 +571,7 @@ streampos FileIO::decompressFile(const string &filename, const string &outputFil
                     // 最后一块特殊处理
                     outputFile.write(outputBuffer[j].data(), lastBlockSize);
                 } else {
-                    outputFile.write(outputBuffer[j].data(), BUFFER_SIZE);
+                    outputFile.write(outputBuffer[j].data(), BLOCK_SIZE);
                 }
             }
         }

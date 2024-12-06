@@ -138,89 +138,90 @@ void start(){
             cerr << "Error: Unknown command '" 
             << line << "'. Valid commands: 'hfm', 'unhfm', 'exit'." << endl;
         }
+        cout << endl;
     }
 }
-void Execution(int choice) {
-    Features tool;
-    switch(choice) {
-        case COMPRESS:
-        {
-            auto names = printInteraction(COMPRESS);
-            // 添加压缩密码
-            string password = encrypt();
-            clock_t start = clock();
-            cout << "压缩中,请等待" << endl;
-            tool.compress(names[0],names[1],password);
-            clock_t end = clock();
-            cout << "压缩成功" << endl << "压缩时间为:" << fixed << setprecision(2) << (double)(end - start) / CLOCKS_PER_SEC << "秒" << endl;
-            break;
-        }
-        case DECOMPRESS:
-        {
-            auto names = printInteraction(DECOMPRESS);
-            int passLength = passwordCorrect(names[0]);
-            clock_t start = clock();
-            cout << "解压缩中,请等待" << endl;
-            tool.decompress(names[0],names[1],passLength);
-            clock_t end = clock();
-            cout << "解压缩成功" << endl <<"解压缩时间为:" << fixed << setprecision(2) << (double)(end - start) / CLOCKS_PER_SEC << endl;
-            break;
-        }
-    }
-}
-// 简化交互
-string* printInteraction(int choice) {
-    static string name[2];
-    switch(choice) {
-        case COMPRESS:{
-            cout << "请输入你要压缩的文件路径(包含后缀)" << endl;
-            while(1){
-                getline(cin,name[0]);
-                fs::path path(name[0]);
-                if (!fs::exists(path)) {
-                        cout << "无效的路径,请重新输入" << endl;
-                        continue;
-                    }
-                break;
-            }
-            cout << "请输入你的目标文件名" << endl;
-            while(1){
-                getline(cin,name[1]);
-                name[1] += ".hfm"; 
-                bool cover = true; // 默认为覆盖
-                cover = checkCompressOutputPath(name[1]);
-                if(!cover){
-                    cout << "请重新输入目标文件名" <<endl;
-                    continue;
-                }
-                break;
-            }
-            break;
-        }
-        case DECOMPRESS:{
-            cout << "请输入你要解压缩的文件路径(包含后缀)" << endl;
-            while(1){
-                getline(cin,name[0]);
-                fs::path path(name[0]);
+// void Execution(int choice) {
+//     Features tool;
+//     switch(choice) {
+//         case COMPRESS:
+//         {
+//             auto names = printInteraction(COMPRESS);
+//             // 添加压缩密码
+//             string password = encrypt();
+//             clock_t start = clock();
+//             cout << "压缩中,请等待" << endl;
+//             tool.compress(names[0],names[1],password);
+//             clock_t end = clock();
+//             cout << "压缩成功" << endl << "压缩时间为:" << fixed << setprecision(2) << (double)(end - start) / CLOCKS_PER_SEC << "秒" << endl;
+//             break;
+//         }
+//         case DECOMPRESS:
+//         {
+//             auto names = printInteraction(DECOMPRESS);
+//             int passLength = passwordCorrect(names[0]);
+//             clock_t start = clock();
+//             cout << "解压缩中,请等待" << endl;
+//             tool.decompress(names[0],names[1],passLength);
+//             clock_t end = clock();
+//             cout << "解压缩成功" << endl <<"解压缩时间为:" << fixed << setprecision(2) << (double)(end - start) / CLOCKS_PER_SEC << endl;
+//             break;
+//         }
+//     }
+// }
+// // 简化交互
+// string* printInteraction(int choice) {
+//     static string name[2];
+//     switch(choice) {
+//         case COMPRESS:{
+//             cout << "请输入你要压缩的文件路径(包含后缀)" << endl;
+//             while(1){
+//                 getline(cin,name[0]);
+//                 fs::path path(name[0]);
+//                 if (!fs::exists(path)) {
+//                         cout << "无效的路径,请重新输入" << endl;
+//                         continue;
+//                     }
+//                 break;
+//             }
+//             cout << "请输入你的目标文件名" << endl;
+//             while(1){
+//                 getline(cin,name[1]);
+//                 name[1] += ".hfm"; 
+//                 bool cover = true; // 默认为覆盖
+//                 cover = checkCompressOutputPath(name[1]);
+//                 if(!cover){
+//                     cout << "请重新输入目标文件名" <<endl;
+//                     continue;
+//                 }
+//                 break;
+//             }
+//             break;
+//         }
+//         case DECOMPRESS:{
+//             cout << "请输入你要解压缩的文件路径(包含后缀)" << endl;
+//             while(1){
+//                 getline(cin,name[0]);
+//                 fs::path path(name[0]);
                 
-                if (!fs::exists(path)) {
-                    cout << "无效的路径,请重新输入" << endl;
-                    continue;
-                }else{
-                    if(path.extension().string() == ".hfm"){
-                        break;
-                    }else{
-                        cout << "文件不是经哈夫曼压缩的,请重新输入" << endl;
-                        continue;
-                    }
-                }
-            }
-            break;
-        }
+//                 if (!fs::exists(path)) {
+//                     cout << "无效的路径,请重新输入" << endl;
+//                     continue;
+//                 }else{
+//                     if(path.extension().string() == ".hfm"){
+//                         break;
+//                     }else{
+//                         cout << "文件不是经哈夫曼压缩的,请重新输入" << endl;
+//                         continue;
+//                     }
+//                 }
+//             }
+//             break;
+//         }
         
-    }
-    return name;
-}
+//     }
+//     return name;
+// }
 // 获得每个文件的压缩文件的大小
 long long* getCompressDirSize(const string& filename, int filenameSize){
     ifstream inputFile(filename, ios::in | ios::ate);
@@ -245,25 +246,25 @@ long long* getCompressDirSize(const string& filename, int filenameSize){
 
     return filesize;
 }
-// 是否加密
-string encrypt(){
-    cout << "您是否要选择加密\n1.yes\n2.no" << endl;
-    string password = "";
-    while(1){
-        string s;
-        getline(cin,s);
-        if(s == "1"){
-            cout << "请输入密码" << endl;
-            getline(cin,password);
-            return password;
-        }else if(s == "2"){
-            return password;
-        }else{
-            cout << "格式不正确,请重新输入" << endl;
-            continue;
-        }
-    }
-}
+// // 是否加密
+// string encrypt(){
+//     cout << "您是否要选择加密\n1.yes\n2.no" << endl;
+//     string password = "";
+//     while(1){
+//         string s;
+//         getline(cin,s);
+//         if(s == "1"){
+//             cout << "请输入密码" << endl;
+//             getline(cin,password);
+//             return password;
+//         }else if(s == "2"){
+//             return password;
+//         }else{
+//             cout << "格式不正确,请重新输入" << endl;
+//             continue;
+//         }
+//     }
+// }
 // 是否解密
 string decode(){
     string password;

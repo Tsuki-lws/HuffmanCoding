@@ -38,6 +38,8 @@ class Features {
         
         // 用于多线程
         void decompressFileTask(const string& filename, string& filepath, int filesize, int startIndex);
+        // 读取并创建文件夹
+        void readAndCreateDir(const int &dirnameSize,ifstream &inputFile,string path);
 };
 
 #endif
