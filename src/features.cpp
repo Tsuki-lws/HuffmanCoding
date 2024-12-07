@@ -257,8 +257,9 @@ void Features::decompressDir(const string &filename, const string &prefix ,strea
             status = checkOutputPath(filepath[i]);
             if(status == coverStatus::EXIT){
                 throw runtime_error("Decompression aborted by user.");
+                return;
             }
-            cover[i] = checkOutputPath(filepath[i]);
+            cover[i] = status;
         }
     }
     else if(result == coverStatus::SKIP){ // 相同的全部跳过

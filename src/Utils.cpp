@@ -16,134 +16,139 @@ void welcome(){
     cout << "=========================================================" << endl;
     cout << "===== Welcome to the compress & decompress program ======" << endl;
 }
-void start(){
+void start() {
     welcome();
     help();
-    while(true){
-        // 提示用户输入命令
-        cout << "Enter command: " ;
+    while (true) {
+        cout << "Enter command: ";
         string line;
         getline(cin, line);
 
-        // 如果用户什么都没输入，跳过本次循环
         if (line.empty()) {
             continue;
         }
-        istringstream ss(line);
-        vector<string> command;
-        string word;
-        while (ss >> word) {
-            command.push_back(word);
+        vector<string> command = parseCommand(line);
+        if (command.empty()) {
+            continue;
         }
-        cout << endl;
-        // 判断输入的命令是否合法
-        if (command.size() > 0 && 
-                (command[0] == "hfm" || command[0] == "unhfm" || command[0] == "exit" || command[0] == "help")) {
+        if (isValidCommand(command[0])) {
             Features tool;
-            // 根据命令读取相应的参数
             if (command[0] == "hfm") {
-                string filename, outputName, password;
-                if (command.size() < 3) {
-                    cerr << "Error: 'hfm' requires at least two arguments: filename and outputName." << endl;
-                    continue;
-                }
-                if(command.size() > 4) {
-                    cerr << "Error: 'hfm' requires at last three arguments: filename, outputName and password." << endl;
-                    continue;
-                }
-                // 获取文件名和输出名
-                filename = command[1];
-                fs::path path(filename);
-                if (!fs::exists(path)) {
-                    cout << "Filename invalid, please re-enter." << endl;
-                    continue;
-                }
-                outputName = command[2];
-                outputName += ".hfm"; 
-                bool cover = true; // 默认为覆盖
-                cover = checkCompressOutputPath(outputName);
-                if(!cover){
-                    cout << "please re-enter" <<endl;
-                    continue;
-                }
-                // 获取密码（可选）
-                if (command.size() > 3) {
-                    password = command[3];
-                }
-                cout << "Compressing, please wait..." << endl;
-                clock_t start = clock();
-                tool.compress(filename,outputName,password);
-                clock_t end = clock();
-
-                cout << "Compression successful" << endl 
-                << "Compression time: " << fixed << setprecision(2) 
-                << (double)(end - start) / CLOCKS_PER_SEC << " seconds" << endl;
+                handleHfmCommand(command, tool);
             } else if (command[0] == "unhfm") {
-                string filename, outputName;
-                if (command.size() < 2) {
-                    cerr << "Error: 'unhfm' requires at least one argument: filename." << endl;
-                    continue;
-                }
-                if (command.size() > 3) {
-                    cerr << "Error: 'unhfm' requires at last two argument: filename and outputName." << endl;
-                    continue;
-                }
-
-                // 获取文件名和输出名
-                filename = command[1];
-                fs::path path(filename);
-                if (!fs::exists(path)) {
-                    cerr << "Error: Invalid path, please re-enter." << endl;
-                    continue;
-                }else{
-                    if(path.extension().string() != ".hfm"){
-                        cerr << "Error: The file is not Huffman compressed, please re-enter." << endl;
-                        continue;
-                    }
-                }
-                outputName = (command.size() > 2) ? command[2] : "";
-                int passLength = passwordCorrect(filename);
-                cout << "Decompressing, please wait..." << endl;
-                clock_t start = clock();
-                try{
-                    tool.decompress(filename,outputName,passLength);
-                }catch(const runtime_error & e){
-                    cout << "Decompression stopped" << endl;
-                    continue;
-                }
-                clock_t end = clock();
-                cout << "Decompression successful" << endl 
-                << "Decompression time: " << fixed << setprecision(2) 
-                << (double)(end - start) / CLOCKS_PER_SEC << " seconds" << endl;
-            }
-            else if(command[0] == "exit"){
-                // 如果输入是 'exit'，则退出程序
-                if (command.size() == 1) {
-                    cout << "Exiting program." << endl;
+                handleUnhfmCommand(command, tool);
+            } else if (command[0] == "exit") {
+                int result = handleExitCommand(command,line);
+                if(result){
                     break;
-                }else{
-                    // 如果输入的命令不符合要求，输出错误提示
-                    cerr << "Error: Unknown command '" 
-                    << line << "'. Valid commands: 'hfm', 'unhfm', 'exit'." << endl;
                 }
-            }else if(command[0] == "help"){
-                // 如果输入是 'exit'，则退出程序
-                if (command.size() == 1) {
-                    help();
-                    continue;
-                }else{
-                    // 如果输入的命令不符合要求，输出错误提示
-                    cerr << "Error: Unknown command '" 
-                    << line << "'. Valid commands: 'hfm', 'unhfm', 'exit','help'." << endl;
-                }
-                
+            } else if (command[0] == "help") {
+                handleHelpCommand(command,line);
             }
-        }else{
-            // 如果输入的命令不符合要求，输出错误提示
-            cerr << "Error: Unknown command '" 
-            << line << "'. Valid commands: 'hfm', 'unhfm', 'exit'." << endl;
+        } else {
+            cerr << "Error: Unknown command '" << line << "'. Valid commands: 'hfm', 'unhfm', 'exit', 'help'." << endl;
         }
         cout << endl;
+    }
+}
+
+vector<string> parseCommand(const string& line) {
+    istringstream ss(line);
+    vector<string> command;
+    string word;
+    while (ss >> word) {
+        command.push_back(word);
+    }
+    return command;
+}
+
+bool isValidCommand(const string& cmd) {
+    return cmd == "hfm" || cmd == "unhfm" || cmd == "exit" || cmd == "help";
+}
+
+void handleHfmCommand(const vector<string>& command, Features& tool) {
+    if (command.size() < 3) {
+        cerr << "Error: 'hfm' requires at least two arguments: filename and outputName." << endl;
+        return;
+    }
+    if (command.size() > 4) {
+        cerr << "Error: 'hfm' requires at last three arguments: filename, outputName and password." << endl;
+        return;
+    }
+    string filename = command[1];
+    fs::path path(filename);
+    if (!fs::exists(path)) {
+        cout << "Filename invalid, please re-enter." << endl;
+        return;
+    }
+    string outputName = command[2] + ".hfm";
+    if (!checkCompressOutputPath(outputName)) {
+        cout << "please re-enter" << endl;
+        return;
+    }
+    string password = (command.size() > 3) ? command[3] : "";
+    cout << "Compressing, please wait..." << endl;
+    clock_t start = clock();
+    tool.compress(filename, outputName, password);
+    clock_t end = clock();
+
+    cout << "Compression successful" << endl
+         << "Compression time: " << fixed << setprecision(2)
+         << (double)(end - start) / CLOCKS_PER_SEC << " seconds" << endl;
+}
+
+void handleUnhfmCommand(const vector<string>& command, Features& tool) {
+    if (command.size() < 2) {
+        cerr << "Error: 'unhfm' requires at least one argument: filename." << endl;
+        return;
+    }
+    if (command.size() > 3) {
+        cerr << "Error: 'unhfm' requires at last two arguments: filename and outputName." << endl;
+        return;
+    }
+
+    string filename = command[1];
+    fs::path path(filename);
+    if (!fs::exists(path)) {
+        cerr << "Error: Invalid filenamepath, please re-enter." << endl;
+        return;
+    }
+    if (path.extension().string() != ".hfm") {
+        cerr << "Error: The file is not Huffman compressed, please re-enter." << endl;
+        return;
+    }
+
+    string outputName = (command.size() > 2) ? command[2] : "";
+    int passLength = passwordCorrect(filename);
+    cout << "Decompressing, please wait..." << endl;
+    clock_t start = clock();
+    try {
+        tool.decompress(filename, outputName, passLength);
+    } catch (const runtime_error& e) {
+        cout << "Decompression stopped" << endl;
+        return;
+    }
+    clock_t end = clock();
+    cout << "Decompression successful" << endl
+         << "Decompression time: " << fixed << setprecision(2)
+         << (double)(end - start) / CLOCKS_PER_SEC << " seconds" << endl;
+}
+
+int handleExitCommand(const vector<string>& command, string line) {
+    if (command.size() == 1) {
+        cout << "Thank you for using the program. Goodbye!" << endl;
+        return 1;
+    } else {
+        cerr << "Error: Unknown command '" << line << "'. Valid commands: 'hfm', 'unhfm', 'exit'." << endl;
+        return 0;
+    }
+}
+
+void handleHelpCommand(const vector<string>& command,string line) {
+    if (command.size() == 1) {
+        help();
+    } else {
+        cerr << "Error: Unknown command '" << line << "'. Valid commands: 'hfm', 'unhfm', 'exit', 'help'." << endl;
     }
 }
 

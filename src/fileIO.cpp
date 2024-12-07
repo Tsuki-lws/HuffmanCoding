@@ -204,99 +204,114 @@ void FileIO::compressFile(const string &filename, const string &outputFileName, 
     {
         string *charCodeArray = handleNonEmptyFileHead(filename, outputFileName, prefix, inputFile, outputFile);
 
-        // clock_t st = clock();
-
         // 写入主内容
         long long filesize = fs::file_size(filename);
-        if(filesize < FILE_SIZE){
-            char check = '1';
-            outputFile.write(&check, sizeof(check));
-            // 写入主内容
-            char inputBuffer[BUFFER_SIZE];
-            char outputBuffer[BUFFER_SIZE];
-            int outputIndex = 0;
-            char bits = 0;
-            int bitcount = 0;
-            long long filesize = fs::file_size(filename);
-            int times = filesize / BUFFER_SIZE;
-            for(int i = 0; i < times; i++){
-                inputFile.read(inputBuffer, BUFFER_SIZE * sizeof(char));
-                for(size_t i = 0; i < BUFFER_SIZE; i++){
-                    string currentChar = charCodeArray[(unsigned char)inputBuffer[i]];
-                    int length = currentChar.length();
-                    for(size_t j = 0; j < length; j++){
-                        gresson(bits,bitcount,outputIndex,outputBuffer,outputFile,(currentChar[j] == '1'));
-                    }
-                }
-            }
-            // 对于不满BUFFER_SIZE的部分处理
-            long long others = filesize % BUFFER_SIZE;
-            inputFile.read(inputBuffer, others * sizeof(char));
-            for(size_t i = 0; i < others; i++){
-                string currentChar = charCodeArray[(unsigned char)inputBuffer[i]];
-                int length = currentChar.length();
-                for(size_t j = 0; j < length; j++){
-                    gresson(bits,bitcount,outputIndex,outputBuffer,outputFile,(currentChar[j] == '1'));
-                }
-            }
-            if (!!bitcount)
-            {
-                // 补齐八位
-                for(int i = bitcount; i < 8;i++){
-                    bits <<= 1;
-                    bits |= 0;
-                }
-                outputBuffer[outputIndex++] = bits;
-            }
-            outputFile.write(outputBuffer, outputIndex);
-        }else{
-            char check = '2';
-            outputFile.write(&check, sizeof(check));
-            int totalBlocks = (filesize + BLOCK_SIZE - 1) / BLOCK_SIZE;
-            int maxThreads = min((int)(thread::hardware_concurrency()), totalBlocks);
-            int times = (totalBlocks + maxThreads - 1) / maxThreads;
-            int lastBlocksSize = filesize % BLOCK_SIZE;
-            // 将总块数写入文件
-            outputFile.write((char *)(&totalBlocks), sizeof(totalBlocks));
-            // 将最后一块的大小写入文件
-            outputFile.write((char *)(&lastBlocksSize),sizeof(lastBlocksSize));
 
-            vector<vector<char>> inputBuffer(maxThreads, vector<char>(BLOCK_SIZE));
-            vector<vector<char>> outputBuffer(maxThreads);
-            vector<thread> threads;
-
-            for (int i = 0; i < times; i++)
-            {
-                int currentThreads = min(maxThreads, totalBlocks - i * maxThreads);
-                threads.clear();   
-                for (int j = 0; j < currentThreads; j++)
-                {
-                    int readSize = (i == times - 1 && j == currentThreads - 1) ? lastBlocksSize : BLOCK_SIZE;
-                    inputFile.read(inputBuffer[j].data(), readSize);
-                    threads.emplace_back([&, j, readSize]()
-                    {
-                        outputBuffer[j] = compressBlock(inputBuffer[j].data(), readSize, charCodeArray);
-                    });
-                }
-                for (auto &t : threads)
-                {
-                    t.join();
-                }
-                for (int j = 0; j < currentThreads; j++)
-                {
-                    // 先写入每个outputBuffer的长度
-                    int bufferSize = outputBuffer[j].size();
-                    outputFile.write(reinterpret_cast<char*>(&bufferSize), sizeof(bufferSize));
-                    // 再写入数据
-                    outputFile.write(outputBuffer[j].data(), bufferSize);
-                }
-            }
+        if (filesize < FILE_SIZE)
+        {
+            // 正常压缩
+            compressSmallFile(inputFile, outputFile, charCodeArray, filesize);
         }
+        else
+        {
+            // 多线程压缩
+            compressLargeFile(inputFile, outputFile, charCodeArray, filesize);
+        }
+
         inputFile.close();
         outputFile.close();
-        
-        // clock_t end = clock();
-        // cout << "主题内容：" << end - st << endl;
+    }
+}
+
+void FileIO::compressSmallFile(ifstream &inputFile, ofstream &outputFile, string *charCodeArray, long long filesize)
+{
+    char check = '1';
+    outputFile.write(&check, sizeof(check));
+
+    char inputBuffer[BUFFER_SIZE];
+    char outputBuffer[BUFFER_SIZE];
+    int outputIndex = 0;
+    char bits = 0;
+    int bitcount = 0;
+    int times = filesize / BUFFER_SIZE;
+
+    for (int i = 0; i < times; i++)
+    {
+        inputFile.read(inputBuffer, BUFFER_SIZE * sizeof(char));
+        processBuffer(inputBuffer, BUFFER_SIZE, charCodeArray, bits, bitcount, outputIndex, outputBuffer, outputFile);
+    }
+    // 对于不满BUFFER_SIZE的部分进行处理
+    long long others = filesize % BUFFER_SIZE;
+    inputFile.read(inputBuffer, others * sizeof(char));
+    processBuffer(inputBuffer, others, charCodeArray, bits, bitcount, outputIndex, outputBuffer, outputFile);
+
+    if (bitcount)
+    {
+        // 补齐八位
+        for (int i = bitcount; i < 8; i++)
+        {
+            bits <<= 1;
+            bits |= 0;
+        }
+        outputBuffer[outputIndex++] = bits;
+    }
+    outputFile.write(outputBuffer, outputIndex);
+}
+
+void FileIO::compressLargeFile(ifstream &inputFile, ofstream &outputFile, string *charCodeArray, long long filesize)
+{
+    char check = '2';
+    outputFile.write(&check, sizeof(check));
+
+    int totalBlocks = (filesize + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    int maxThreads = min((int)(thread::hardware_concurrency()), totalBlocks);
+    int times = (totalBlocks + maxThreads - 1) / maxThreads;
+    int lastBlocksSize = filesize % BLOCK_SIZE;
+    // 将总块数写入文件
+    outputFile.write((char *)(&totalBlocks), sizeof(totalBlocks));
+    // 将最后一块的大小写入文件
+    outputFile.write((char *)(&lastBlocksSize), sizeof(lastBlocksSize));
+
+    vector<vector<char>> inputBuffer(maxThreads, vector<char>(BLOCK_SIZE));
+    vector<vector<char>> outputBuffer(maxThreads);
+    vector<thread> threads;
+    // 多线程处理
+    for (int i = 0; i < times; i++)
+    {
+        int currentThreads = min(maxThreads, totalBlocks - i * maxThreads);
+        threads.clear();
+        for (int j = 0; j < currentThreads; j++)
+        {
+            int readSize = (i == times - 1 && j == currentThreads - 1) ? lastBlocksSize : BLOCK_SIZE;
+            inputFile.read(inputBuffer[j].data(), readSize);
+            threads.emplace_back([&, j, readSize]()
+                                 { outputBuffer[j] = compressBlock(inputBuffer[j].data(), readSize, charCodeArray); });
+        }
+        for (auto &t : threads)
+        {
+            t.join();
+        }
+        for (int j = 0; j < currentThreads; j++)
+        {
+            // 先写入每个outputBuffer的长度
+            int bufferSize = outputBuffer[j].size();
+            outputFile.write(reinterpret_cast<char *>(&bufferSize), sizeof(bufferSize));
+            // 再写入数据
+            outputFile.write(outputBuffer[j].data(), bufferSize);
+        }
+    }
+}
+
+void FileIO::processBuffer(char *inputBuffer, size_t bufferSize, string *charCodeArray, char &bits, int &bitcount, int &outputIndex, char *outputBuffer, ofstream &outputFile)
+{
+    for (size_t i = 0; i < bufferSize; i++)
+    {
+        string currentChar = charCodeArray[(unsigned char)inputBuffer[i]];
+        int length = currentChar.length();
+        for (size_t j = 0; j < length; j++)
+        {
+            gresson(bits, bitcount, outputIndex, outputBuffer, outputFile, (currentChar[j] == '1'));
+        }
     }
 }
 

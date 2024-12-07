@@ -72,6 +72,15 @@ class FileIO{
         // 压缩块
         vector<char> compressBlock(const char *inputBuffer, int size, const string *charCodeArray);
 
+        // 压缩小文件
+        void compressSmallFile(ifstream &inputFile, ofstream &outputFile, string *charCodeArray, long long filesize);
+
+        // 多线程压缩大文件
+        void compressLargeFile(ifstream &inputFile, ofstream &outputFile, string *charCodeArray, long long filesize);
+
+        // 处理缓冲区
+        void processBuffer(char *inputBuffer, size_t bufferSize, string *charCodeArray, char &bits, int &bitcount, int &outputIndex, char *outputBuffer, ofstream &outputFile);
+
         // 解压缩块
         vector<char> decompressBlock(const char* inputBuffer, int size,HuffmanNode *current);
 
