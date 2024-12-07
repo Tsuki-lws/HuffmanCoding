@@ -1,16 +1,8 @@
 // 程序运行处
-// #include "Utils.h"
+#include "CLI.h"
 
-// int main(int argc, char* argv[]) {
-
-
-//     int choice = getEncodeOrDecode();
-//     Execution(choice);
-//     return 0;
-// }
-
-#include "utils.h"
 int main(int argc, char* argv[]) {
-    start();
+    CLI start;
+    start.start();
     return 0;
 }

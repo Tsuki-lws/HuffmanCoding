@@ -46,3 +46,16 @@
   - unhfm filename                          解压缩filename到当前文件夹
   - unhfm filename outputName               将filename解压缩到outputName文件夹下
   <!-- - unhfm filename outputName password 以压缩密码password将filename解压缩到outputName -->
+
+
+
+
+
+![image-20241207172252516](C:/Users/34829/AppData/Roaming/Typora/typora-user-images/image-20241207172252516.png)
+
+![image-20241207172540970](C:/Users/34829/AppData/Roaming/Typora/typora-user-images/image-20241207172540970.png)
+
+![image-20241207172822088](C:/Users/34829/AppData/Roaming/Typora/typora-user-images/image-20241207172822088.png)
+
+如今
+![image-20241207173423382](C:/Users/34829/AppData/Roaming/Typora/typora-user-images/image-20241207173423382.png)

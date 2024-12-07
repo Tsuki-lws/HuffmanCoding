@@ -9,6 +9,7 @@
 #include <vector>
 #include "HuffmanTree.h"
 #include <thread>
+#include <filesystem>
 #define BUFFER_SIZE (512*1024)
 #define FILE_SIZE (10*1024*1024)
 #define BLOCK_SIZE (5*1024*1024)
@@ -22,9 +23,7 @@ enum FileType {
 struct fileHead {
     int alphaVarity; // 字符种类数量
     long long originBytes; // 源文件字节数
-    // int nameLength; // 文件名长度
-    // char* name; // 文件名字符数组
-     fileHead() : originBytes(0), alphaVarity(0){}
+    fileHead() : originBytes(0), alphaVarity(0){}
 };
 // 字母及其编码
 struct alphaCode {
@@ -87,7 +86,7 @@ class FileIO{
         
         // 处理移位
         void gresson(char &bits, int &bitcount, int& outputIndex,char* buffer,ofstream& file,bool data);
-        // void gresson(char &bits, int &bitcount, int& outputIndex,char* buffer,ofstream& file,bool data);
+        void gresson(char &bits, int &bitcount, vector<char>& buffer,bool data);
         // 前序遍历存哈夫曼树到缓冲区
         void writeTreeToBuffer(ofstream& file, HuffmanNode* root, char* buffer, 
                                                             int& outputIndex, int &bitcount, char &bits);

@@ -1,8 +1,6 @@
 #include "fileIO.h"
 #include "HuffmanTree.h"
-#include <bitset>
-#include <filesystem>
-#include <cstring>
+
 
 namespace fs = std::filesystem;
 
@@ -153,6 +151,22 @@ string *FileIO::handleNonEmptyFileHead(const string &filename,const string &outp
 }
 
 // 处理移位:主内容
+
+
+void FileIO::gresson(char &bits, int &bitcount, vector<char> &buffer,bool data)
+{
+    bits <<= 1;
+    bits |= data;
+    bitcount++;
+
+    if (bitcount == 8)
+    {
+        buffer.push_back(bits);
+        bits = 0;
+        bitcount = 0;
+    }
+
+}
 // 压缩块
 vector<char> FileIO::compressBlock(const char *inputBuffer, int size, const string *charCodeArray)
 {
@@ -165,15 +179,8 @@ vector<char> FileIO::compressBlock(const char *inputBuffer, int size, const stri
         int length = currentChar.length();
         for (int j = 0; j < length; j++)
         {
-            bits <<= 1;
-            bits |= (currentChar[j] == '1');
-            bitcount++;
-            if (bitcount == 8)
-            {
-                outputBuffer.push_back(bits);
-                bits = 0;
-                bitcount = 0;
-            }
+            gresson(bits, bitcount, outputBuffer, (currentChar[j] == '1'));
+            
         }
     }
     if (bitcount > 0)
