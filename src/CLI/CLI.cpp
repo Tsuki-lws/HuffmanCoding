@@ -33,7 +33,6 @@ void CLI::start() {
             continue;
         }
         if (isValidCommand(command[0])) {
-            // Features tool;
             if (command[0] == "hfm") {
                 Compress tool;
                 handleHfmCommand(command, tool);
@@ -64,11 +63,11 @@ vector<string> CLI::parseCommand(const string& line) {
     }
     return command;
 }
-
+// 判断命令是否合法
 bool CLI::isValidCommand(const string& cmd) {
     return cmd == "hfm" || cmd == "unhfm" || cmd == "exit" || cmd == "help";
 }
-
+// 处理hfm命令
 void CLI::handleHfmCommand(const vector<string>& command, Compress& tool) {
     if (command.size() < 3) {
         cerr << "Error: 'hfm' requires at least two arguments: filename and outputName." << endl;
@@ -79,7 +78,7 @@ void CLI::handleHfmCommand(const vector<string>& command, Compress& tool) {
         return;
     }
     string filename = command[1];
-    fs::path path(filename);
+    fs::path path = fs::u8path(filename);
     if (!fs::exists(path)) {
         cout << "Filename invalid, please re-enter." << endl;
         return;
@@ -99,7 +98,7 @@ void CLI::handleHfmCommand(const vector<string>& command, Compress& tool) {
          << "Compression time: " << fixed << setprecision(2)
          << (double)(end - start) / CLOCKS_PER_SEC << " seconds" << endl;
 }
-
+// 处理unhfm命令
 void CLI::handleUnhfmCommand(const vector<string>& command, Decompress& tool) {
     if (command.size() < 2) {
         cerr << "Error: 'unhfm' requires at least one argument: filename." << endl;
@@ -136,7 +135,7 @@ void CLI::handleUnhfmCommand(const vector<string>& command, Decompress& tool) {
          << "Decompression time: " << fixed << setprecision(2)
          << (double)(end - start) / CLOCKS_PER_SEC << " seconds" << endl;
 }
-
+// 处理exit命令
 int CLI::handleExitCommand(const vector<string>& command, string line) {
     if (command.size() == 1) {
         cout << "Thank you for using the program. Goodbye!" << endl;
@@ -146,7 +145,7 @@ int CLI::handleExitCommand(const vector<string>& command, string line) {
         return 0;
     }
 }
-
+// 处理help命令
 void CLI::handleHelpCommand(const vector<string>& command,string line) {
     if (command.size() == 1) {
         help();

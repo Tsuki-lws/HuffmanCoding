@@ -1,20 +1,45 @@
+// {
+//      "tasks": [
+//       {
+//         "type": "cppbuild",
+//         "label": "C/C++: g++.exe build all files in src",
+//         "command": "D:\\MSYS2\\mingw64\\bin\\g++.exe",
+//         "args": ["-g", "src\\*.cpp", "-o", "src\\Huffman.exe"],
+//         "options": {
+//           "cwd": "${workspaceFolder}"
+//         },
+//         "problemMatcher": ["$gcc"],
+//         "group": {
+//           "kind": "build",
+//           "isDefault": true
+//         },
+//         "detail": "compiler: D:\\MSYS2\\mingw64\\bin\\g++.exe"
+//       }
+//      ],
+//     "version": "2.0.0"
+//   }
+
 {
-     "tasks": [
+  "version": "2.0.0",
+  "tasks": [
       {
-        "type": "cppbuild",
-        "label": "C/C++: g++.exe build all files in src",
-        "command": "D:\\MSYS2\\mingw64\\bin\\g++.exe",
-        "args": ["-g", "src\\*.cpp", "-o", "src\\Huffman.exe"],
-        "options": {
-          "cwd": "${workspaceFolder}"
-        },
-        "problemMatcher": ["$gcc"],
-        "group": {
-          "kind": "build",
-          "isDefault": true
-        },
-        "detail": "compiler: D:\\MSYS2\\mingw64\\bin\\g++.exe"
+          "type": "cppbuild",
+          "label": "C/C++: g++.exe build all files in src",
+          "command": "powershell",
+          "args": [
+              "-Command",
+              "chcp 65001>nul; $cliFiles = Get-ChildItem -Recurse -Path 'src/CLI' -Filter '*.cpp' | ForEach-Object { $_.FullName }; $fileIOFiles = Get-ChildItem -Recurse -Path 'src/FILEIO' -Filter '*.cpp' | ForEach-Object { $_.FullName }; $utilsFiles = Get-ChildItem -Recurse -Path 'src/UTILS' -Filter '*.cpp' | ForEach-Object { $_.FullName }; D:\\MSYS2\\mingw64\\bin\\g++.exe -g $cliFiles $fileIOFiles $utilsFiles src/main.cpp -o src/Huffman.exe -I src/CLI -I src/FILEIO -I src/UTILS"
+          ],
+          "options": {
+              "cwd": "${workspaceFolder}"
+          },
+          "problemMatcher": ["$gcc"],
+          "group": {
+              "kind": "build",
+              "isDefault": true
+          },
+          "detail": "compiler: D:\\MSYS2\\mingw64\\bin\\g++.exe"
       }
-     ],
-    "version": "2.0.0"
-  }
+  ]
+}
+

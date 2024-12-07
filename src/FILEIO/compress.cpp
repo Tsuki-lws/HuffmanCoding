@@ -1,5 +1,5 @@
 #include "compress.h"
-#include "fileIO.h"
+#include "fileIO_C.h"
 #include "Utils.h"
 // 压缩
 void Compress::compress(const string &filename, const string &outputFileName, const string &password)
@@ -53,7 +53,7 @@ long long Compress::compressFile(const string &filename, const string &outputFil
         size = 0;
     else
         size = file_size(str);
-    FileIO fileIO;
+    FileIO_C fileIO;
     fileIO.compressFile(filename, outputFileName, prefix);
     return (file_size(str) - size);
 }
@@ -63,12 +63,15 @@ void Compress::compressDirectory(const string &dirPath, const string &outputFile
     // 获取目录下的文件夹信息以及文件信息
     vector<string> dirname;
     vector<string> filename;
-    // // 将原文件夹路径完整的记录下来
-    // dirname.push_back(dirPath);
     // 最前缀
     string prefix = fs::path(dirPath).parent_path().string();/*fs::path(dirPath).filename().string();// 相对路径*/
     int sLength = prefix.length() + 1;
-    dirname.push_back(fs::path(dirPath).filename().string());
+    // 对于形如"D:\test"特殊处理
+    if(sLength == 4){
+        sLength = 3;
+    }
+    string first = fs::path(dirPath).filename().string();
+    dirname.push_back(first);
     // 遍历这个dirPath文件夹,将文件加入到filename，将文件夹加入到dirname,相对路径了
     for (const auto &entry : fs::recursive_directory_iterator(dirPath))
     {

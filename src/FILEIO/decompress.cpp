@@ -1,5 +1,5 @@
 #include "Decompress.h"
-#include "fileIO.h"
+#include "fileIO_D.h"
 #include "Utils.h"
 // 解压缩
 void Decompress::decompress(const string& filename, string& outputFileName, int passLength){
@@ -61,12 +61,12 @@ void Decompress::decompressFile(const string &filename, string &outputFileName, 
     if(!cover){ // 如果false,跳过
         return;
     }
-    FileIO fileIO;
+    FileIO_D fileIO;
     fileIO.decompressFile(filename, outputFileName, fs::file_size(filename), currentPos);
 }
 // 单个处理任务
 void Decompress::decompressFileTask(const string& filename, string& filepath, int filesize, int startIndex) {
-    FileIO fileIO;
+    FileIO_D fileIO;
     fileIO.decompressFile(filename, filepath, filesize, startIndex);  
 }
 // 解压缩文件夹
@@ -135,7 +135,7 @@ void Decompress::decompressDir(const string &filename, const string &prefix ,str
             cover[i] = !(fs::exists(filepath[i]));
         }
     }
-    FileIO fileIO;
+    FileIO_D fileIO;
     
     for(int i = 0; i < filenameSize; i++){
         if (!cover[i]) {

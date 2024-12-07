@@ -7,7 +7,6 @@
 
 #include "compress.h"
 #include "decompress.h"
-#include "fileIO.h"
 #include "HuffmanTree.h"
 
 class CLI{

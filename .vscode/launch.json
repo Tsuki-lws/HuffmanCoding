@@ -1,24 +1,14 @@
 // {
-//     // 使用 IntelliSense 了解相关属性。 
-//     // 悬停以查看现有属性的描述。
-//     // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
 //     "version": "0.2.0",
 //     "configurations": [
 //         {
-//             "type": "java",
-//             "name": "Main",
-//             "request": "launch",
-//             "mainClass": "Main",
-//             "projectName": "data-structure_8268b1c9"
-//         },
-//         {
-//             "name": "g++.exe - Build and debug active file",
+//             "name": "g++.exe - Build and debug all files in src",
 //             "type": "cppdbg",
 //             "request": "launch",
-//             "program": "${fileDirname}\\${fileBasenameNoExtension}.exe",
+//             "program": "${workspaceFolder}/src/Huffman.exe",
 //             "args": [],
 //             "stopAtEntry": false,
-//             "cwd": "${fileDirname}",
+//             "cwd": "${workspaceFolder}/src",
 //             "environment": [],
 //             "externalConsole": false,
 //             "MIMode": "gdb",
@@ -30,7 +20,7 @@
 //                     "ignoreFailures": true
 //                 }
 //             ],
-//             "preLaunchTask": "C/C++: g++.exe build active file"
+//             "preLaunchTask": "C/C++: g++.exe build all files in src"
 //         }
 //     ]
 // }
@@ -39,17 +29,17 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "g++.exe - Build and debug all files in src",
+            "name": "g++.exe - Build and debug Huffman",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/src/Huffman.exe",
+            "program": "${workspaceFolder}/src/Huffman.exe",  // 指向编译生成的 Huffman.exe
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}/src",
+            "cwd": "${workspaceFolder}/src",  // 设置当前工作目录为 src 文件夹
             "environment": [],
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "miDebuggerPath": "D:/MSYS2/mingw64/bin/gdb.exe",
+            "externalConsole": false,  // 启动外部控制台运行
+            "MIMode": "gdb",  // 使用 GDB 作为调试器
+            "miDebuggerPath": "D:/MSYS2/mingw64/bin/gdb.exe",  // 设置 GDB 路径
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
@@ -57,7 +47,15 @@
                     "ignoreFailures": true
                 }
             ],
-            "preLaunchTask": "C/C++: g++.exe build all files in src"
+            "preLaunchTask": "C/C++: g++.exe build all files in src",  // 在启动调试前执行编译任务
+            "postDebugTask": "",  // 调试后不执行其他任务
+            "logging": {
+                "moduleLoad": false,
+                "trace": true,
+                "engineLogging": false,
+                "programOutput": true,
+                "exceptions": true
+            }
         }
     ]
 }
