@@ -27,7 +27,6 @@ bool FileIO_D::readGresson(char &bits, int &bitcount, int& inputIndex, vector<ch
         }
         bits = buffer[inputIndex++];
         bitcount = 8;
-        // remainingSize--;
     }
 
     data = (bits >> 7) & 1;  // 取出当前位的值
@@ -81,6 +80,7 @@ vector<char> FileIO_D::decompressBlock(const char* inputBuffer, int size,Huffman
     HuffmanNode *root = current;
     for (size_t i = 0; i < size; i++)
     {
+        // 解码字节
         char byte = inputBuffer[i];
         for (int j = 0; j < 8; j++)
         {
@@ -99,169 +99,6 @@ vector<char> FileIO_D::decompressBlock(const char* inputBuffer, int size,Huffman
     current = root;
     return outputBuffer;
 }
-
-// // 解压缩文件
-// streampos FileIO_D::decompressFile(const string &filename, const string &outputFileName,
-//                                  long long filesize, const streampos &startIndex)
-// {
-//     // 读取头文件信息
-//     auto [filehead, currentPos] = readFileHead(filename, startIndex);
-
-//     if (filehead.originBytes == 0)
-//     {
-//         ofstream outputFile(outputFileName, ios::out | ios::binary);
-//         outputFile.close();
-//         return currentPos;
-//     }
-
-//     // // 返回子节点
-//     HuffmanTree tree;
-
-//     ifstream inputFile(filename, ios::in | ios::binary);
-//     // 始终是覆盖写入
-//     ofstream outputFile(outputFileName, ios::out | ios::binary);
-//      // 定位到存储文件的位置
-//     inputFile.seekg(currentPos);
-//     long size;
-//     inputFile.read(reinterpret_cast<char*>(&size), sizeof(long));  // 读取树的大小
-//     HuffmanNode* root = readHuffmanTree(inputFile,size);
-
-//     // 检查是正常压缩还是多线程压缩
-//     char check;
-//     inputFile.read(&check,sizeof(check));
-//     streampos newPos = currentPos + streamoff(1) + streamoff(sizeof(size));
-//     if(check == '1'){
-//         HuffmanNode *current = root;
-//         // 缓冲区
-//         char inputBuffer[BUFFER_SIZE];
-//         char outputBuffer[BUFFER_SIZE];
-//         int outputIndex = 0;
-//         int writeByte = 0;
-//         // 主题内容的字节数
-//         long long mainSize = filesize - (newPos - startIndex);
-//         int times = mainSize / BUFFER_SIZE;
-//         long long others = mainSize % BUFFER_SIZE;
-//         for (int i = 0; i < times; i++)
-//         {
-//             inputFile.read(inputBuffer, BUFFER_SIZE * sizeof(char));
-//             for (size_t i = 0; i < BUFFER_SIZE; i++)
-//             {
-//                 char byte = inputBuffer[i];
-//                 for (int j = 0; j < 8; j++)
-//                 {
-//                     if (!tree.isLeaf(current))
-//                     {
-//                         bool bit = byte & (1 << (7 - j));
-//                         current = bit ? current->right : current->left;
-//                     }
-//                     if (tree.isLeaf(current))
-//                     {
-//                         outputBuffer[outputIndex++] = current->data;
-//                         writeByte++;
-//                         current = root;
-//                         if (outputIndex == BUFFER_SIZE)
-//                         {
-//                             outputFile.write(outputBuffer, outputIndex);
-//                             outputIndex = 0;
-//                         }
-//                         // 处理多余的字符
-//                         if (writeByte >= filehead.originBytes)
-//                         {
-//                             goto finish;
-//                         }
-//                     }
-//                 }
-//             }
-//         }
-//         // 对于不满BUFFER_SIZE的部分
-//         inputFile.read(inputBuffer, others * sizeof(char));
-//         for (size_t i = 0; i < others; i++)
-//         {
-//             char byte = inputBuffer[i];
-//             for (int j = 0; j < 8; j++)
-//             {
-//                 if (!tree.isLeaf(current))
-//                 {
-//                     bool bit = byte & (1 << (7 - j));
-//                     current = bit ? current->right : current->left;
-//                 }
-//                 if (tree.isLeaf(current))
-//                 {
-//                     outputBuffer[outputIndex++] = current->data;
-//                     writeByte++;
-//                     current = root;
-//                     if (outputIndex == BUFFER_SIZE)
-//                     {
-//                         outputFile.write(outputBuffer, outputIndex);
-//                         outputIndex = 0;
-//                     }
-//                     // 处理多余的字符
-//                     if (writeByte >= filehead.originBytes)
-//                     {
-//                         goto finish;
-//                     }
-//                 }
-//             }
-//         }
-//     finish:;
-//         if (outputIndex > 0)
-//         {
-//             outputFile.write(outputBuffer, outputIndex);
-//         }
-//     }
-//     else if(check == '2'){
-//         // 读取总块数
-//         int totalBlocks;
-//         inputFile.read((char *)(&totalBlocks), sizeof(totalBlocks));
-//         // 读取最后一块字节数
-//         int lastBlockSize;
-//         inputFile.read((char*)(&lastBlockSize),sizeof(lastBlockSize));
-
-//         int maxThreads = min((int)(thread::hardware_concurrency()), totalBlocks);
-//         int times = (totalBlocks + maxThreads - 1) / maxThreads;
-//         int lastTime = times - 1;
-
-//         vector<vector<char>> outputBuffer(maxThreads);
-//         vector<vector<char>> inputBuffer(maxThreads);
-//         vector<thread> threads;
-
-//         for(int i = 0; i < times; i++){
-//             int currentThreads = min(maxThreads, totalBlocks - i * maxThreads);
-//             int lastCurrentTheard = currentThreads - 1;
-//             threads.clear();
-//             for (int j = 0; j < currentThreads; j++)
-//             {
-//                 int readSize = 0;
-//                 inputFile.read((char*)&readSize,sizeof(readSize));
-//                 inputBuffer[j].resize(readSize);
-//                 inputFile.read(inputBuffer[j].data(),readSize);
-//                 threads.emplace_back([&, j, readSize]()
-//                 {
-//                     outputBuffer[j] = decompressBlock(inputBuffer[j].data(), readSize, root);
-//                 });
-//             }
-//             for (auto &t : threads)
-//             {
-//                 t.join();
-//             }
-
-//             // 写入解压后的数据
-//             for (int j = 0; j < currentThreads; j++) {
-//                 if (i == lastTime && j == lastCurrentTheard) {
-//                     // 最后一块特殊处理
-//                     outputFile.write(outputBuffer[j].data(), lastBlockSize);
-//                 } else {
-//                     outputFile.write(outputBuffer[j].data(), BLOCK_SIZE);
-//                 }
-//             }
-//         }
-//     }
-//     streampos nowPos = inputFile.tellg();
-//     // 关闭文件
-//     inputFile.close();
-//     outputFile.close();
-//     return nowPos;
-// }
 
 // 解压缩文件
 void FileIO_D::decompressFile(const string &filename, const string &outputFileName,
@@ -291,84 +128,8 @@ void FileIO_D::decompressFile(const string &filename, const string &outputFileNa
 
     if (check == '1')
     {
-        decompressWithSingleThread(inputFile, outputFile, tree, root, filesize, newPos - startIndex, filehead.originBytes);
-    //     HuffmanNode *current = root;
-    //     // 缓冲区
-    //     char inputBuffer[BUFFER_SIZE];
-    //     char outputBuffer[BUFFER_SIZE];
-    //     int outputIndex = 0;
-    //     int writeByte = 0;
-    //     // 主题内容的字节数
-    //     long long mainSize = filesize - (newPos - startIndex);
-    //     int times = mainSize / BUFFER_SIZE;
-    //     long long others = mainSize % BUFFER_SIZE;
-    //     for (int i = 0; i < times; i++)
-    //     {
-    //         inputFile.read(inputBuffer, BUFFER_SIZE * sizeof(char));
-    //         for (size_t i = 0; i < BUFFER_SIZE; i++)
-    //         {
-    //             char byte = inputBuffer[i];
-    //             for (int j = 0; j < 8; j++)
-    //             {
-    //                 if (!tree.isLeaf(current))
-    //                 {
-    //                     bool bit = byte & (1 << (7 - j));
-    //                     current = bit ? current->right : current->left;
-    //                 }
-    //                 if (tree.isLeaf(current))
-    //                 {
-    //                     outputBuffer[outputIndex++] = current->data;
-    //                     writeByte++;
-    //                     current = root;
-    //                     if (outputIndex == BUFFER_SIZE)
-    //                     {
-    //                         outputFile.write(outputBuffer, outputIndex);
-    //                         outputIndex = 0;
-    //                     }
-    //                     // 处理多余的字符
-    //                     if (writeByte >= filehead.originBytes)
-    //                     {
-    //                         goto finish;
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-    //     // 对于不满BUFFER_SIZE的部分
-    //     inputFile.read(inputBuffer, others * sizeof(char));
-    //     for (size_t i = 0; i < others; i++)
-    //     {
-    //         char byte = inputBuffer[i];
-    //         for (int j = 0; j < 8; j++)
-    //         {
-    //             if (!tree.isLeaf(current))
-    //             {
-    //                 bool bit = byte & (1 << (7 - j));
-    //                 current = bit ? current->right : current->left;
-    //             }
-    //             if (tree.isLeaf(current))
-    //             {
-    //                 outputBuffer[outputIndex++] = current->data;
-    //                 writeByte++;
-    //                 current = root;
-    //                 if (outputIndex == BUFFER_SIZE)
-    //                 {
-    //                     outputFile.write(outputBuffer, outputIndex);
-    //                     outputIndex = 0;
-    //                 }
-    //                 // 处理多余的字符
-    //                 if (writeByte >= filehead.originBytes)
-    //                 {
-    //                     goto finish;
-    //                 }
-    //             }
-    //         }
-    //     }
-    // finish:;
-    //     if (outputIndex > 0)
-    //     {
-    //         outputFile.write(outputBuffer, outputIndex);
-    //     }
+        decompressWithSingleThread(inputFile, outputFile, tree, root, filesize, 
+                                                        newPos - startIndex, filehead.originBytes);
     }
     else if (check == '2')
     {
@@ -383,6 +144,7 @@ void FileIO_D::decompressWithSingleThread(ifstream &inputFile, ofstream &outputF
     HuffmanNode* current = root;
     char inputBuffer[BUFFER_SIZE], outputBuffer[BUFFER_SIZE];
     int outputIndex = 0, writeByte = 0;
+    // 主题内容大小
     long long mainSize = filesize - headSize;
     int times = mainSize / BUFFER_SIZE;
     long long others = mainSize % BUFFER_SIZE;
@@ -394,7 +156,7 @@ void FileIO_D::decompressWithSingleThread(ifstream &inputFile, ofstream &outputF
         for (size_t i = 0; i < size; i++)
         {
             char byte = inputBuffer[i];
-            // 解码字节
+            // 解码字节(遍历哈夫曼树)
             for (int j = 0; j < 8; j++)
             {
                 if (!tree.isLeaf(current))
@@ -428,21 +190,21 @@ finish:;
     }
 }
 
-
-
 void FileIO_D::decompressWithMultiThread(ifstream &inputFile, ofstream &outputFile,
                                               HuffmanTree &tree, HuffmanNode *root,
                                               long long filesize, streampos newPos, long long originBytes)
 {
+    // 先读总块数
     int totalBlocks;
     inputFile.read(reinterpret_cast<char*>(&totalBlocks), sizeof(totalBlocks));
+    // 再读最后一块大小
     int lastBlockSize;
     inputFile.read(reinterpret_cast<char*>(&lastBlockSize), sizeof(lastBlockSize));
-
+    // 获取最大线程数
     int maxThreads = min(static_cast<int>(thread::hardware_concurrency()), totalBlocks);
     int times = (totalBlocks + maxThreads - 1) / maxThreads;
     int lastTime = times - 1;
-
+    // 创建缓冲区
     vector<vector<char>> outputBuffer(maxThreads), inputBuffer(maxThreads);
     vector<thread> threads;
 
@@ -452,10 +214,13 @@ void FileIO_D::decompressWithMultiThread(ifstream &inputFile, ofstream &outputFi
         int lastCurrentThread = currentThreads - 1;
 
         threads.clear();
+        // 采用多线程处理
         for (int j = 0; j < currentThreads; ++j)
         {
             int readSize = 0;
+            // 先读字节数
             inputFile.read(reinterpret_cast<char*>(&readSize), sizeof(readSize));
+            // 再读相应数据
             inputBuffer[j].resize(readSize);
             inputFile.read(inputBuffer[j].data(), readSize);
 

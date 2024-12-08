@@ -64,7 +64,7 @@ void Compress::compressDirectory(const string &dirPath, const string &outputFile
     vector<string> dirname;
     vector<string> filename;
     // 最前缀
-    string prefix = fs::path(dirPath).parent_path().string();/*fs::path(dirPath).filename().string();// 相对路径*/
+    string prefix = fs::path(dirPath).parent_path().string();
     int sLength = prefix.length() + 1;
     // 对于形如"D:\test"特殊处理
     if(sLength == 4){

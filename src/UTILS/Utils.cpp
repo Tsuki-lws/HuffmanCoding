@@ -1,6 +1,5 @@
 #include "Utils.h"
 
-
 // 获得每个文件的压缩文件的大小
 long long* getCompressDirSize(const string& filename, int filenameSize){
     ifstream inputFile(filename, ios::in | ios::ate);
@@ -23,7 +22,7 @@ long long* getCompressDirSize(const string& filename, int filenameSize){
 
     return filesize;
 }
-
+// 检查输出路径是否存在,解压缩
 int checkOutputPath(const string &filepath){
     if(fs::exists(filepath)){
         cout << filepath << " already exists, do you want to overwrite it?\n"<<
@@ -46,6 +45,7 @@ int checkOutputPath(const string &filepath){
     }
     return true;
 }
+// 相同文件数过多，确认是否全部覆盖
 int coverAll(const vector<string> &filepath, int filenameSize){
     int count = 0;
     for(int i = 0; i < filenameSize; i++) {
@@ -77,7 +77,7 @@ int coverAll(const vector<string> &filepath, int filenameSize){
     // 默认自己决定
     return coverStatus::OTHER;
 }
-
+// 检查输出路径是否存在,压缩
 bool checkCompressOutputPath(const string &filepath){
     if(fs::exists(filepath)){
         cout << filepath << " already exists, do you want to overwrite it?\n1. Overwrite\n2. Choose another path" << endl; 

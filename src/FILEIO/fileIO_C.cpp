@@ -63,7 +63,22 @@ void FileIO_C::gresson(char &bits, int &bitcount, int& outputIndex,char* buffer,
     }
 }
 
-// 前序遍历存哈夫曼树到缓冲区
+// 处理移位:多线程压缩
+void FileIO_C::gresson(char &bits, int &bitcount, vector<char> &buffer,bool data)
+{
+    bits <<= 1;
+    bits |= data;
+    bitcount++;
+
+    if (bitcount == 8)
+    {
+        buffer.push_back(bits);
+        bits = 0;
+        bitcount = 0;
+    }
+
+}
+// 前序遍历存哈夫曼树存到缓冲区
 void FileIO_C::writeTreeToBuffer(ofstream& file, HuffmanNode* root, char* buffer, int& outputIndex, 
                                                                             int &bitcount, char &bits) {
     if (!root) return;
@@ -85,7 +100,6 @@ void FileIO_C::writeTreeToBuffer(ofstream& file, HuffmanNode* root, char* buffer
     writeTreeToBuffer(file, root->left, buffer, outputIndex,bitcount,bits);
     writeTreeToBuffer(file, root->right, buffer, outputIndex,bitcount,bits);
 }
-
 // 写入哈夫曼树结构并记录文件大小
 void FileIO_C::writeHuffmanTree(ofstream& file, HuffmanNode* root) {
     char buffer[BUFFER_SIZE] = {0} ;  // 缓冲区
@@ -121,8 +135,7 @@ void FileIO_C::handleEmptyFile(const string &filename, const string &outputFileN
 string *FileIO_C::handleNonEmptyFileHead(const string &filename,const string &outputFileName, 
                                             const string &prefix, ifstream &inputFile, ofstream &outputFile)
 {
-    // 读取文件并构建字符频率表，在后面可以改到前一层，把这4行作为参数传进来
-    // 这样应该可以解决解压缩文件代码中的错误（好像不太行，这是独立的）
+    // 读取文件并构建字符频率表
     map<char, long long> freqTable = makeCharFreq(filename);
 
     HuffmanTree tree = HuffmanTree(freqTable);
@@ -150,47 +163,6 @@ string *FileIO_C::handleNonEmptyFileHead(const string &filename,const string &ou
     return charCodeArray;
 }
 
-// 处理移位:多线程压缩
-void FileIO_C::gresson(char &bits, int &bitcount, vector<char> &buffer,bool data)
-{
-    bits <<= 1;
-    bits |= data;
-    bitcount++;
-
-    if (bitcount == 8)
-    {
-        buffer.push_back(bits);
-        bits = 0;
-        bitcount = 0;
-    }
-
-}
-// 压缩块,多线程
-vector<char> FileIO_C::compressBlock(const char *inputBuffer, int size, const string *charCodeArray)
-{
-    vector<char> outputBuffer;
-    char bits = 0;
-    int bitcount = 0;
-    for (int i = 0; i < size; i++)
-    {
-        string currentChar = charCodeArray[(unsigned char)inputBuffer[i]];
-        int length = currentChar.length();
-        for (int j = 0; j < length; j++)
-        {
-            gresson(bits, bitcount, outputBuffer, (currentChar[j] == '1'));
-        }
-    }
-    if (bitcount > 0)
-    {
-        for (int j = bitcount; j < 8; j++)
-        {
-            bits <<= 1;
-            bits |= 0;
-        }
-        outputBuffer.push_back(bits);
-    }
-    return outputBuffer;
-}
 // 压缩单个文件
 void FileIO_C::compressFile(const string &filename, const string &outputFileName, const string &prefix)
 {
@@ -224,6 +196,19 @@ void FileIO_C::compressFile(const string &filename, const string &outputFileName
 
         inputFile.close();
         outputFile.close();
+    }
+}
+// 处理缓冲区
+void FileIO_C::processBuffer(char *inputBuffer, size_t bufferSize, string *charCodeArray, char &bits, int &bitcount, int &outputIndex, char *outputBuffer, ofstream &outputFile)
+{
+    for (size_t i = 0; i < bufferSize; i++)
+    {
+        string currentChar = charCodeArray[(unsigned char)inputBuffer[i]];
+        int length = currentChar.length();
+        for (size_t j = 0; j < length; j++)
+        {
+            gresson(bits, bitcount, outputIndex, outputBuffer, outputFile, (currentChar[j] == '1'));
+        }
     }
 }
 // 正常压缩文件
@@ -260,6 +245,32 @@ void FileIO_C::compressSmallFile(ifstream &inputFile, ofstream &outputFile, stri
         outputBuffer[outputIndex++] = bits;
     }
     outputFile.write(outputBuffer, outputIndex);
+}
+// 压缩块,多线程
+vector<char> FileIO_C::compressBlock(const char *inputBuffer, int size, const string *charCodeArray)
+{
+    vector<char> outputBuffer;
+    char bits = 0;
+    int bitcount = 0;
+    for (int i = 0; i < size; i++)
+    {
+        string currentChar = charCodeArray[(unsigned char)inputBuffer[i]];
+        int length = currentChar.length();
+        for (int j = 0; j < length; j++)
+        {
+            gresson(bits, bitcount, outputBuffer, (currentChar[j] == '1'));
+        }
+    }
+    if (bitcount > 0)
+    {
+        for (int j = bitcount; j < 8; j++)
+        {
+            bits <<= 1;
+            bits |= 0;
+        }
+        outputBuffer.push_back(bits);
+    }
+    return outputBuffer;
 }
 // 多线程压缩文件
 void FileIO_C::compressLargeFile(ifstream &inputFile, ofstream &outputFile, string *charCodeArray, long long filesize)
@@ -305,16 +316,4 @@ void FileIO_C::compressLargeFile(ifstream &inputFile, ofstream &outputFile, stri
         }
     }
 }
-// 处理缓冲区
-void FileIO_C::processBuffer(char *inputBuffer, size_t bufferSize, string *charCodeArray, char &bits, int &bitcount, int &outputIndex, char *outputBuffer, ofstream &outputFile)
-{
-    for (size_t i = 0; i < bufferSize; i++)
-    {
-        string currentChar = charCodeArray[(unsigned char)inputBuffer[i]];
-        int length = currentChar.length();
-        for (size_t j = 0; j < length; j++)
-        {
-            gresson(bits, bitcount, outputIndex, outputBuffer, outputFile, (currentChar[j] == '1'));
-        }
-    }
-}
+

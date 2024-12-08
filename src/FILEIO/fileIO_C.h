@@ -62,7 +62,8 @@ class FileIO_C{
         void compressLargeFile(ifstream &inputFile, ofstream &outputFile, string *charCodeArray, long long filesize);
 
         // 处理缓冲区
-        void processBuffer(char *inputBuffer, size_t bufferSize, string *charCodeArray, char &bits, int &bitcount, int &outputIndex, char *outputBuffer, ofstream &outputFile);
+        void processBuffer(char *inputBuffer, size_t bufferSize, string *charCodeArray, char &bits, int &bitcount
+                                                        , int &outputIndex, char *outputBuffer, ofstream &outputFile);
 
         // 正常移位
         void gresson(char &bits, int &bitcount, int& outputIndex,char* buffer,ofstream& file,bool data);

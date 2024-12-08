@@ -53,7 +53,8 @@ void CLI::start() {
                 handleHelpCommand(command,line);
             }
         } else {
-            cerr << "Error: Unknown command '" << line << "'. Valid commands: 'hfm', 'unhfm', 'exit', 'help'." << endl;
+            cerr << "Error: Unknown command '" << line 
+                                    << "'. Valid commands: 'hfm', 'unhfm', 'exit', 'help'." << endl;
         }
         cout << endl;
     }
