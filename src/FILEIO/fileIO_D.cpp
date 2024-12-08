@@ -110,6 +110,8 @@ void FileIO_D::decompressFile(const string &filename, const string &outputFileNa
     if (filehead.originBytes == 0)
     {
         ofstream outputFile(outputFileName, ios::out | ios::binary);
+        outputFile.close();
+        return;
     }
     HuffmanTree tree;
     ifstream inputFile(filename, ios::in | ios::binary);

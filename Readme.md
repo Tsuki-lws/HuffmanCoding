@@ -35,6 +35,14 @@ src/
 
 ### 2.2 运行方法
 
+#### 编译
+
+```
+g++ -o Huffman.exe main.cpp CLI/CLI.cpp FILEIO/compress.cpp FILEIO/decompress.cpp FILEIO/fileIO_C.cpp FILEIO/fileIO_D.cpp FILEIO/HuffmanTree.cpp UTILS/Utils.cpp -I CLI -I FILEIO -I UTILS
+```
+
+#### 可供使用的命令
+
 ```
  help command:   help                // 输入help打印命令形式
  exit command:   exit                // 输入exit退出程序
@@ -260,16 +268,21 @@ src/
 
 | 测试文件                         | 原始大小           | 压缩后大小         | 压缩时长/s | 解压时长/s | 压缩率 |
 | -------------------------------- | ------------------ | ------------------ | ---------- | ---------- | ------ |
-| testcase                         | 3,769,450,636 字节 | 2,565,205,414 字节 | 37.92      | 38.47      | 68.05% |
+| testcase                         | 3,769,450,636 字节 | 2,565,205,414 字节 | 37.92      | 38.47      | 31.95% |
+| testcase01EmptyFile              | 0字节              | 90 字节            | 0.00       | 0.00       | nan    |
 | testcase01EmptyFile\empty.txt    | 0字节              | 34 字节            | 0.00       | 0.00       | nan    |
-| testcase02NormalSingleFile       | 23,903,670 字节    | 17,492,447 字节    | 0.54       | 0.53       | 73.17% |
-| testcase03XLargeSingleFile       | 1,105,931,880 字节 | 709,457,601 字节   | 3.51       | 1.96       | 64.15% |
-| testcase02NormalSingleFile\1.txt | 1,985,016 字节     | 1,110,950 字节     | 0.06       | 0.05       | 55.97% |
-| testcase06SubFolders             | 448,515,860 字节   | 447,173,817 字节   | 25.77      | 30.23      | 99.7%  |
-| testcase07XlargeSubFolders       | 1,099,970,162 字节 | 698,093,682 字节   | 3.88       | 2.17       | 63.46% |
-| testcase08Speed\1.csv            | 643,412,034 字节   | 411,715,762 字节   | 1.85       | 0.97       | 63.99% |
-| testcase09Ratio                  | 441,771,600 字节   | 277,051,286 字节   | 1.32       | 0.69       | 62.71% |
-| testcase03XLargeSingleFile\1.jpg | 20,748,246 字节    | 20,690,468 字节    | 0.23       | 0.30       | 99.72% |
+| testcase02NormalSingleFile       | 23,903,670 字节    | 17,492,447 字节    | 0.54       | 0.53       | 26.83% |
+| testcase02NormalSingleFile\1.txt | 1,985,016 字节     | 1,110,950 字节     | 0.06       | 0.05       | 44.03% |
+| testcase03XLargeSingleFile       | 1,105,931,880 字节 | 709,457,601 字节   | 3.51       | 1.96       | 35.85% |
+| testcase03XLargeSingleFile\1.jpg | 20,748,246 字节    | 20,690,468 字节    | 0.23       | 0.30       | 0.28%  |
+| testcase4EmptyFolder             | 0 字节             | 69 字节            | 0.00       | 0.00       | nan    |
+| testcase5NomalFolder             | 5,945,430 字节     | 4,167,662 字节     | 0.30       | 0.25       | 29.91% |
+| testcase06SubFolders             | 448,515,860 字节   | 447,173,817 字节   | 25.77      | 30.23      | 0.3%   |
+| testcase07XlargeSubFolders       | 1,099,970,162 字节 | 698,093,682 字节   | 3.88       | 2.17       | 36.54% |
+| testcase08Speed\1.csv            | 643,412,034 字节   | 411,715,762 字节   | 1.85       | 0.97       | 36.01% |
+| testcase09Ratio                  | 441,771,600 字节   | 277,051,286 字节   | 1.32       | 0.69       | 37.29% |
+| testcase.hfm                     | 2,565,205,414 字节 | 2,554,305,887 字节 | 10.16      | 8.35       | 0.425% |
+
 
 
 
