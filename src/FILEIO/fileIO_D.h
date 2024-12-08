@@ -10,9 +10,6 @@
 #include "HuffmanTree.h"
 #include <thread>
 #include <filesystem>
-#define BUFFER_SIZE (512*1024)
-#define FILE_SIZE (10*1024*1024)
-#define BLOCK_SIZE (5*1024*1024)
 using namespace std;
 
 enum FileType {
@@ -39,7 +36,7 @@ class FileIO_D{
         pair<fileHead,streampos> readFileHead(const string& filename,const streampos &startIndex);
 
         // 解压缩单个文件
-        streampos decompressFile(const string& filename,const string& outputFileName,
+        void decompressFile(const string& filename,const string& outputFileName,
                                         long long filesize,const streampos &startIndex);
 
         // 读取哈夫曼树并返回树的根节点
@@ -54,6 +51,12 @@ class FileIO_D{
         // 读取移位
         bool readGresson(char &bits, int &bitcount, int& inputIndex, vector<char> &buffer, 
                                             long &remainingSize, ifstream& file, bool &data);
+        // 多线程压缩
+        void decompressWithMultiThread(ifstream &inputFile, ofstream &outputFile,
+                    HuffmanTree &tree, HuffmanNode *root,long long filesize, streampos newPos, long long originBytes);
+        // 单线程压缩
+        void decompressWithSingleThread(ifstream &inputFile, ofstream &outputFile,HuffmanTree &tree, 
+                                        HuffmanNode *root, long long filesize, streampos headSize, long long originBytes);                                    
 };          
 
 #endif

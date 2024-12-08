@@ -3,11 +3,12 @@
 
 #include<iostream>
 #include<string>
-#include<sstream>
-
+#include <sstream>
+#include <fstream>
 #include "compress.h"
 #include "decompress.h"
 #include "HuffmanTree.h"
+#include "Utils.h"
 
 class CLI{
 public:
@@ -21,7 +22,6 @@ public:
     void help();
     // 欢迎界面
     void welcome();
-
     // 解析命令
     vector<string> parseCommand(const string& line);
     // 判断命令是否合法

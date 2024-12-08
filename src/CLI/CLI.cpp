@@ -1,6 +1,7 @@
 #include "CLI.h"
 #include "Utils.h"
 
+
 void CLI::help(){
     cout << "=========================================================" << endl;
     cout << "=========  help command:   help                ==========" << endl;
@@ -17,6 +18,7 @@ void CLI::welcome(){
     cout << "=========================================================" << endl;
     cout << "===== Welcome to the compress & decompress program ======" << endl;
 }
+
 void CLI::start() {
     welcome();
     help();
@@ -24,7 +26,10 @@ void CLI::start() {
         cout << "Enter command: ";
         string line;
         getline(cin, line);
-
+        if (any_of(line.begin(), line.end(), [](unsigned char c){ return c >= 0x80; })) {
+            cerr << "Error: Command contains non-ASCII characters. Please enter a valid command." << endl;
+            continue;
+        }
         if (line.empty()) {
             continue;
         }

@@ -9,6 +9,8 @@
 #include <mutex>
 #include <future>
 #include <algorithm>
+#include "fileIO_D.h"
+#include "Utils.h"
 using namespace std;
 namespace fs = filesystem;
 

@@ -1,6 +1,5 @@
 #include "Decompress.h"
-#include "fileIO_D.h"
-#include "Utils.h"
+
 // 解压缩
 void Decompress::decompress(const string& filename, string& outputFileName, int passLength){
     ifstream input(filename, ios::in | ios::binary);
